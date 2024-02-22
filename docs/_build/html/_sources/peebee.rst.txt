@@ -11,6 +11,11 @@ peebee.models module
    :members:
    :undoc-members:
    :show-inheritance:
+   
+.. automodule:: peebee.convenience
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
@@ -19,3 +24,4 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+

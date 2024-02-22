@@ -1,3 +1,8 @@
+v0.0.2 
+ - added convenience.py module
+ - added pbdot_gr() function
+ - did some sphinx testing
+
 v0.0.1 (initial commit)
  - added potential models, plus .accel() and .alos() capabilities
  - added generic gala and galpy potential wrappers

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>peebee package &mdash; peebee 0.0.1 documentation</title>
+  <title>peebee package &mdash; peebee 0.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -15,12 +15,14 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/documentation_options.js?v=e3a6060d"></script>
         <script src="_static/doctools.js?v=888ff710"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="peebee" href="modules.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -42,100 +44,39 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">peebee package</a><ul>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-peebee.models">peebee.models module</a><ul>
-<li><a class="reference internal" href="#peebee.models.AnharmonicDisk"><code class="docutils literal notranslate"><span class="pre">AnharmonicDisk</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.AnharmonicDisk.accel"><code class="docutils literal notranslate"><span class="pre">AnharmonicDisk.accel()</span></code></a></li>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">peebee</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">peebee package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-peebee.models">peebee.models module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.AnharmonicDisk"><code class="docutils literal notranslate"><span class="pre">AnharmonicDisk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.CompositeModel"><code class="docutils literal notranslate"><span class="pre">CompositeModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.Cross"><code class="docutils literal notranslate"><span class="pre">Cross</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.DamourTaylorPotential"><code class="docutils literal notranslate"><span class="pre">DamourTaylorPotential</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.GalaPotential"><code class="docutils literal notranslate"><span class="pre">GalaPotential</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.GalpyPotential"><code class="docutils literal notranslate"><span class="pre">GalpyPotential</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.Hernquist"><code class="docutils literal notranslate"><span class="pre">Hernquist</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.IsothermalDisk"><code class="docutils literal notranslate"><span class="pre">IsothermalDisk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.LocalExpansion"><code class="docutils literal notranslate"><span class="pre">LocalExpansion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.MiyamotoNagaiDisk"><code class="docutils literal notranslate"><span class="pre">MiyamotoNagaiDisk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.NFW"><code class="docutils literal notranslate"><span class="pre">NFW</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.PointMass"><code class="docutils literal notranslate"><span class="pre">PointMass</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.QuillenFlexible"><code class="docutils literal notranslate"><span class="pre">QuillenFlexible</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.QuillenVariableVcirc"><code class="docutils literal notranslate"><span class="pre">QuillenVariableVcirc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.SinusoidalDisk"><code class="docutils literal notranslate"><span class="pre">SinusoidalDisk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.models.SphericalFlatRC"><code class="docutils literal notranslate"><span class="pre">SphericalFlatRC</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.convenience.pbdot_gr"><code class="docutils literal notranslate"><span class="pre">pbdot_gr()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#peebee.models.CompositeModel"><code class="docutils literal notranslate"><span class="pre">CompositeModel</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.CompositeModel.accel"><code class="docutils literal notranslate"><span class="pre">CompositeModel.accel()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.CompositeModel.alos"><code class="docutils literal notranslate"><span class="pre">CompositeModel.alos()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.CompositeModel.nparams"><code class="docutils literal notranslate"><span class="pre">CompositeModel.nparams</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.CompositeModel.param_names"><code class="docutils literal notranslate"><span class="pre">CompositeModel.param_names</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.CompositeModel.params"><code class="docutils literal notranslate"><span class="pre">CompositeModel.params</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.CompositeModel.set_params"><code class="docutils literal notranslate"><span class="pre">CompositeModel.set_params()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.CompositeModel.toggle_log_params"><code class="docutils literal notranslate"><span class="pre">CompositeModel.toggle_log_params()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.Cross"><code class="docutils literal notranslate"><span class="pre">Cross</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.Cross.accel"><code class="docutils literal notranslate"><span class="pre">Cross.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.DamourTaylorPotential"><code class="docutils literal notranslate"><span class="pre">DamourTaylorPotential</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.DamourTaylorPotential.accel"><code class="docutils literal notranslate"><span class="pre">DamourTaylorPotential.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.GalaPotential"><code class="docutils literal notranslate"><span class="pre">GalaPotential</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.GalaPotential.accel"><code class="docutils literal notranslate"><span class="pre">GalaPotential.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.GalpyPotential"><code class="docutils literal notranslate"><span class="pre">GalpyPotential</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.GalpyPotential.accel"><code class="docutils literal notranslate"><span class="pre">GalpyPotential.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.Hernquist"><code class="docutils literal notranslate"><span class="pre">Hernquist</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.Hernquist.accel"><code class="docutils literal notranslate"><span class="pre">Hernquist.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.IsothermalDisk"><code class="docutils literal notranslate"><span class="pre">IsothermalDisk</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.IsothermalDisk.accel"><code class="docutils literal notranslate"><span class="pre">IsothermalDisk.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.LocalExpansion"><code class="docutils literal notranslate"><span class="pre">LocalExpansion</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.LocalExpansion.accel"><code class="docutils literal notranslate"><span class="pre">LocalExpansion.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.MiyamotoNagaiDisk"><code class="docutils literal notranslate"><span class="pre">MiyamotoNagaiDisk</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.MiyamotoNagaiDisk.accel"><code class="docutils literal notranslate"><span class="pre">MiyamotoNagaiDisk.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.Model.accel"><code class="docutils literal notranslate"><span class="pre">Model.accel()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.Model.alos"><code class="docutils literal notranslate"><span class="pre">Model.alos()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.Model.get_param_names"><code class="docutils literal notranslate"><span class="pre">Model.get_param_names()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.Model.log_corr_params"><code class="docutils literal notranslate"><span class="pre">Model.log_corr_params()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.Model.nparams"><code class="docutils literal notranslate"><span class="pre">Model.nparams</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.Model.set_params"><code class="docutils literal notranslate"><span class="pre">Model.set_params()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.Model.toggle_log_params"><code class="docutils literal notranslate"><span class="pre">Model.toggle_log_params()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.NFW"><code class="docutils literal notranslate"><span class="pre">NFW</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.NFW.accel"><code class="docutils literal notranslate"><span class="pre">NFW.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.PointMass"><code class="docutils literal notranslate"><span class="pre">PointMass</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.PointMass.accel"><code class="docutils literal notranslate"><span class="pre">PointMass.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.QuillenFlexible"><code class="docutils literal notranslate"><span class="pre">QuillenFlexible</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.QuillenFlexible.accel"><code class="docutils literal notranslate"><span class="pre">QuillenFlexible.accel()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.QuillenFlexible.set_vert_only"><code class="docutils literal notranslate"><span class="pre">QuillenFlexible.set_vert_only()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.QuillenVariableVcirc"><code class="docutils literal notranslate"><span class="pre">QuillenVariableVcirc</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.QuillenVariableVcirc.accel"><code class="docutils literal notranslate"><span class="pre">QuillenVariableVcirc.accel()</span></code></a></li>
-<li><a class="reference internal" href="#peebee.models.QuillenVariableVcirc.set_vert_only"><code class="docutils literal notranslate"><span class="pre">QuillenVariableVcirc.set_vert_only()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.SinusoidalDisk"><code class="docutils literal notranslate"><span class="pre">SinusoidalDisk</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.SinusoidalDisk.accel"><code class="docutils literal notranslate"><span class="pre">SinusoidalDisk.accel()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#peebee.models.SphericalFlatRC"><code class="docutils literal notranslate"><span class="pre">SphericalFlatRC</span></code></a><ul>
-<li><a class="reference internal" href="#peebee.models.SphericalFlatRC.accel"><code class="docutils literal notranslate"><span class="pre">SphericalFlatRC.accel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-peebee">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-peebee">Module contents</a></li>
 </ul>
-</li>
-</ul>
-</div>
+
         </div>
       </div>
     </nav>
@@ -150,6 +91,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">peebee</a></li>
       <li class="breadcrumb-item active">peebee package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/peebee.rst.txt" rel="nofollow"> View page source</a>
@@ -424,6 +366,28 @@
 
 </dd></dl>
 
+<p id="module-peebee.convenience">Text here for Sphinx (I think)</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="peebee.convenience.pbdot_gr">
+<span class="sig-prename descclassname"><span class="pre">peebee.convenience.</span></span><span class="sig-name descname"><span class="pre">pbdot_gr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#peebee.convenience.pbdot_gr" title="Link to this definition"></a></dt>
+<dd><p>Compute <span class="math notranslate nohighlight">\(\dot{P}^\mathrm{GR}_b\)</span>, the change in orbital period due to emission of gravitational waves.
+Adapted from Weisberg &amp; Huang (2016).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Pb<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Orbital period (s)</p>
+</dd>
+<dt class="field-even">Mp<span class="colon">:</span></dt>
+<dd class="field-even"><p>Mass of the pulsar (M<span class="math notranslate nohighlight">\(_\odot\)</span>)</p>
+</dd>
+<dt class="field-odd">Mc<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Mass of the companion (M<span class="math notranslate nohighlight">\(_\odot\)</span>)</p>
+</dd>
+<dt class="field-even">E<span class="colon">:</span></dt>
+<dd class="field-even"><p>Orbital eccentricity</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-peebee">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-peebee" title="Link to this heading"></a></h2>
@@ -433,7 +397,9 @@
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-left" title="peebee" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
 
   <hr/>
 
