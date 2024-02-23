@@ -1,5 +1,13 @@
+v0.0.3
+ - borrowed some coordinate transforms from mwahpy
+ - added transforms module
+ - added convenience.pdot_shk() and convenience.dm_over_bary_alos()
+ - added decorators module
+ - borrowed the fix_arrays decorator from mwahpy
+ - added convert_to_frame decorator for generic frame transformations (currently supports 'gal' and 'cart')
+
 v0.0.2 
- - added convenience.py module
+ - added convenience module
  - added pbdot_gr() function
  - did some sphinx testing
 
