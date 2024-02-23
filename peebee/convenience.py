@@ -3,7 +3,6 @@ Text here for Sphinx (I think)
 """
 
 import numpy as np
-import transforms
 from .decorators import fix_arrays, convert_to_frame
 
 r_sun = 8.0 #TODO: This should be set in a single settings/global file and imported, should be changeable
@@ -30,7 +29,7 @@ def pbdot_gr(pb, mp, mc, e):
 	mp *= 1.989e30
 
 	#TODO: c should be grabbed from somewhere rather than being 3e8
-	pbdot_gr = -192*np.pi*(6.67e-11)**(5/3)/(5*(3e8)**5) * (p/(2*np.pi))**(-5/3) * (1-e**2)**(-7/2) * (1 + (73/24)*e**2 + (37/96)*e**4) * mp*mc/((mp + mc)**(1/3))
+	pbdot_gr = -192*np.pi*(6.67e-11)**(5/3)/(5*(3e8)**5) * (pb/(2*np.pi))**(-5/3) * (1-e**2)**(-7/2) * (1 + (73/24)*e**2 + (37/96)*e**4) * mp*mc/((mp + mc)**(1/3))
 
 	return pbdot_gr
 
