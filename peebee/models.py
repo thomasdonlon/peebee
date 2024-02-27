@@ -11,6 +11,9 @@ from galpy.potential import HernquistPotential, evaluatezforces, evaluateRforces
 from gala.potential.potential import MiyamotoNagaiPotential
 from gala.units import UnitSystem
 
+from .transforms import convert_to_frame
+from .glob import fix_arrays
+
 #G = 4.301e-6 #kpc/Msun (km/s)^2
 G = 4.516e-39 #kpc^3/Msun/s^2  (all accels will be in kpc/s^2) #kpc/s^2 * kpc^2/Msun
 # Rsun = 8.0 #kpc
@@ -82,28 +85,18 @@ class Model:
 	def accel(self, x, y, z, **kwargs): #should catch everything?
 		raise NotImplementedError('Uninitialized model has no acc() method. Try initializing an existing model or defining your own.')
 
-	def alos(self, l, b, d, d_err=None): #includes solar accel!
-		#print(f'l input: {l}')
-		#print(f'b input: {b}')
+	@fix_arrays
+	@convert_to_frame('gal')
+	def alos(self, l, b, d, frame='gal', d_err=None): #includes solar accel!
 
 		#heliocentric
 		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
 		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
 		z = d*np.sin(b*np.pi/180)
 
-		#print(x, y, z)
-
-		# print(np.array(self.a(Rsun + x, y, z)).T)
-		# print(np.array(self.a(Rsun,0.,0.)).T)
 		alossun = np.array(self.accel(Rsun,0.,0.)).T
-		# print('alossun', alossun)
-		# print('accels', np.array(self.accel(Rsun + x, y, z)).T)
-		#accels = np.array([a - alossun for a in np.array(self.accel(Rsun + x, y, z)).T])  #subtract off solar accel
 		accels = np.array(self.accel(Rsun + x, y, z)).T - alossun  #subtract off solar accel
-		#print('accels', accels)
-		#print('shape accels', np.shape(accels))
 
-		#print(accels)
 		los_vecs = (np.array([x, y, z]/d).T)
 		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
 			los_accels = np.sum(accels*los_vecs, axis=1)

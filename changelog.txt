@@ -1,3 +1,10 @@
+v0.0.4
+ - had to rework how some decorators work to avoid circular imports
+ - @fix_arrays is now in glob.py (new)
+ - @convert_to_frame is now in transforms.py
+ - some bug fixes so that the decorators also worked for methods (python3 fix your game)
+ - added some useful constants to glob.py
+
 v0.0.3
  - borrowed some coordinate transforms from mwahpy
  - added transforms module

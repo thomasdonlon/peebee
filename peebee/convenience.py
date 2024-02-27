@@ -3,11 +3,50 @@ Text here for Sphinx (I think)
 """
 
 import numpy as np
-from .decorators import fix_arrays, convert_to_frame
-
-r_sun = 8.0 #TODO: This should be set in a single settings/global file and imported, should be changeable
+from .glob import fix_arrays, r_sun
+from .transforms import convert_to_frame
 
 #TODO: Use astropy units to make conversions happen automatically
+
+#===============================================================================
+# DECORATORS
+#===============================================================================
+
+#this generically allows functions to take in either arrays or single values
+# and turns everything into (numpy) arrays behind the scenes
+def fix_arrays(func):
+    def wrapper(*args, **kwargs):
+
+        use_array = True
+
+        #this *should* work but python3 is difficult with how it exactly passes (bound) methods
+        #check if func is method and correct for that (can't turn __self__ into an array)
+        # check_arg = 0
+        # if inspect.ismethod(func): #first arg is self
+        #     check_arg = 1
+
+        #so let's do it the "naive" way
+        check_arg = 0
+        try:
+            test = np.array(args[0], dtype=float)
+        except TypeError: #args[0] is __self__ (probably)
+            check_arg = 1
+
+        if not(isinstance(args[check_arg], np.ndarray)): #check whether the first input is an array (assume all inputs are symmetric)
+            use_array = False
+            args = tuple([np.array([args[i+check_arg]], dtype=float) for i in range(len(args)-check_arg)]) #if they aren't, convert the args to arrays
+
+        ret = func(*args, **kwargs) #catches the output from the function
+
+        if not use_array: #convert them back if necessary
+            if not(isinstance(ret, tuple)): #check whether we can actually iterate on the returned values (i.e. whether the func returns a single value or multiple)
+                ret = ret[0]
+            else:
+                ret = tuple([ret[i][0] for i in range(len(ret))])
+
+        return ret
+    return wrapper
+
 
 #===============================================================================
 #FUNCTIONS
