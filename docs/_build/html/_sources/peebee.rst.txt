@@ -16,6 +16,16 @@ peebee.models module
    :members:
    :undoc-members:
    :show-inheritance:
+   
+.. automodule:: peebee.transforms
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
+.. automodule:: peebee.glob
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
