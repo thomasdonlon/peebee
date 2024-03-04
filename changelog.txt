@@ -1,3 +1,6 @@
+v0.0.5
+ - added alos_obs(), pbdot_intr(), and intr_over_gr() to convenience submodule
+
 v0.0.4
  - had to rework how some decorators work to avoid circular imports
  - @fix_arrays is now in glob.py (new)

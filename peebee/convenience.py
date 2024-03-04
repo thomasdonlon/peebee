@@ -67,7 +67,7 @@ def pbdot_gr(pb, mp, mc, e):
 	mc *= 1.989e30 #to kg
 	mp *= 1.989e30
 
-	#TODO: c should be grabbed from somewhere rather than being 3e8
+	#TODO: c should be grabbed from somewhere rather than being 3e8 (and G)
 	pbdot_gr = -192*np.pi*(6.67e-11)**(5/3)/(5*(3e8)**5) * (pb/(2*np.pi))**(-5/3) * (1-e**2)**(-7/2) * (1 + (73/24)*e**2 + (37/96)*e**4) * mp*mc/((mp + mc)**(1/3))
 
 	return pbdot_gr
@@ -93,6 +93,101 @@ def pdot_shk(p, mu, d):
 
 @fix_arrays
 @convert_to_frame('gal')
+def alos_obs(*args, frame='gal'):
+	"""
+	Compute $a_\\mathrm{los}$, the line-of-sight acceleration of a pulsar given its observed properties. 
+	Automatically determines whether to use GR if the number of inputs is 6 (no GR) or 9 (with GR). 
+	$a_\\mathrm{los}$ is computed as $$\\frac{a_\\mathrm{los} P_b}{c} = \\dot{P_b}^\\mathrm{Obs} - \\dot{P_b}^\\mathrm{Shk} - \\dot{P_b}^\\mathrm{GR} $$
+	where $\\dot{P_b}^\\mathrm{GR} = 0$ if mp, mc, and e are not provided. 
+
+	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). 
+	Toggle between these options with the 'frame' flag.
+	:pb: binary orbital period of the pulsar (s)
+	:pbdot_obs: the observed time derivative of the binary orbital period (s/s)
+	:mu: the observed proper motion (mas/yr)
+	:mp: (optional) the mass of the pulsar (M$_\\odot$)
+	:mc: (optional) the mass of the companion (M$_\\odot$)
+	:e: (optional) orbital eccentricity of the binary
+	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d),
+	'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	"""
+
+	if len(args) == 6:
+		mode = 'non_gr'
+	elif len(args) == 9:
+		mode = 'gr'
+	else:
+		raise Exception('alos_obs() only works with 6 arguments (non-GR mode) or 9 arguments (GR mode).')
+
+	l = args[0]
+	b = args[1]
+	d = args[2]
+
+	pb = args[3]
+	pbdot_obs = args[4]
+	mu = args[5]
+
+	pbdot_shk = pdot_shk(pb, mu, d)
+
+	pbdot_gr = 0 #if non_gr mode, just ignore gr term
+	if mode == 'gr':
+		mp = args[6]
+		mc = args[7]
+		e = args[8]
+		pbdot_gr = pbdot_gr(pb, mp, mc, e)
+
+	pbdot_act = pbdot_obs - pbdot_shk - pbdot_gr
+
+	#should get c from somewhere, also unitful rather than hard-coded conversion here
+	return pbdot_act*3e8/pb*3.154e10 #to mm/s/yr
+
+@fix_arrays
+@convert_to_frame('gal')
+def pbdot_intr(l, b, d, pb, pbdot_obs, mu, frame='gal'):
+	"""
+	Compute $\\dot{P}_b^\\mathrm{Intr}$, the binary orbital period derivative of the pulsar not due to the Shklovskii Effect.
+	This can be interpreted as the observed decay of the binary orbital period due to emission of gravitational waves. 
+
+	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). 
+	Toggle between these options with the 'frame' flag.
+	:pb: binary orbital period of the pulsar (s)
+	:pbdot_obs: the observed time derivative of the binary orbital period (s/s)
+	:mu: the observed proper motion (mas/yr)
+	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d),
+	'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	"""
+
+	pbdot_shk = pdot_shk(pb, mu, d)
+
+	return pbdot_obs - pbdot_shk
+
+@fix_arrays
+@convert_to_frame('gal')
+def intr_over_gr(l, b, d, pb, pbdot_obs, mu, mp, mc, e, frame='gal'):
+	"""
+	Compute $\\dot{P}_b^\\mathrm{Intr}/\\dot{P}_b^\\mathrm{GR}$, the ratio of the observed orbital decay of the binary to the theoretical orbtial decay due to
+	the emission of gravitational waves. If the observation is consistent with general relativity, this should be equal to 1. 
+
+	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). 
+	Toggle between these options with the 'frame' flag.
+	:pb: binary orbital period of the pulsar (s)
+	:pbdot_obs: the observed time derivative of the binary orbital period (s/s)
+	:mu: the observed proper motion (mas/yr)
+	:mp: (optional) the mass of the pulsar (M$_\\odot$)
+	:mc: (optional) the mass of the companion (M$_\\odot$)
+	:e: (optional) orbital eccentricity of the binary
+	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d),
+	'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	"""
+
+	pbdot_shk = pdot_shk(pb, mu, d)
+	pbdot_gr = pbdot_gr(pb, mp, mc, e)
+	pbdot_intr = pbdot_intr(l, b, d, pb, pbdot_obs, mu, frame='gal')
+
+	return pbdot_intr/pbdot_gr
+
+@fix_arrays
+@convert_to_frame('gal')
 def dm_over_bary_alos(l, b, d, model_bary, model_dm, frame='gal'):
 	"""
 	Compute $|a_\\mathrm{DM}|/|a_\\mathrm{bary}|$, the ratio of the (magnitudes of the) relative contributions of the dark matter and baryonic components
@@ -110,3 +205,5 @@ def dm_over_bary_alos(l, b, d, model_bary, model_dm, frame='gal'):
 	alos_dm = model_dm.alos(l, b, d)
 
 	return np.abs(alos_dm)/np.abs(alos_bary)
+
+
