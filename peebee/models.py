@@ -4,6 +4,7 @@
 #TODO: dict names can collide when adding two models if param names are identical
 #TODO: implement astropy units in a way that ensures proper units are always output
 #TODO: Allow single inputs as well as arrays (currently only arrays supported)
+#TODO: all accel functions should have the fix_arrays and convert_to_frame() decorators
 
 import numpy as np
 import astropy.units as u

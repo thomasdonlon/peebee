@@ -1,6 +1,5 @@
 """
-Helper file for peebee, holds the decorators for functions. 
-These are used to help automate things like array-like vs float handling in function inputs, alternate between Cartesian and Galactic frames, etc. 
+Helper file for peebee, holds the general utilities for functions elsewhere in peebee, plus constants that we want to reference across the package. 
 This doesn't need to show up in Sphinx.
 """
 
@@ -18,6 +17,7 @@ from astropy.coordinates import SkyCoord
 
 r_sun = 8.0 #kpc
 kpcs2tommsyr = 9.731e29 
+kpctocm = 3.086e21 # convert kpc to cm
 
 #===============================================================================
 # DECORATORS

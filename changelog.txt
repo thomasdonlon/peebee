@@ -1,3 +1,6 @@
+v0.0.6
+ - Added fitter.py module
+
 v0.0.5
  - added alos_obs(), pbdot_intr(), and intr_over_gr() to convenience submodule
 
