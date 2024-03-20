@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>peebee package &mdash; peebee 0.0.6 documentation</title>
+  <title>peebee package &mdash; peebee 0.0.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -15,7 +15,7 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=1fd71caa"></script>
+        <script src="_static/documentation_options.js?v=bbaf98b3"></script>
         <script src="_static/doctools.js?v=888ff710"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -73,8 +73,14 @@
 <li class="toctree-l4"><a class="reference internal" href="#peebee.convenience.pbdot_gr"><code class="docutils literal notranslate"><span class="pre">pbdot_gr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#peebee.convenience.pbdot_intr"><code class="docutils literal notranslate"><span class="pre">pbdot_intr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#peebee.convenience.pdot_shk"><code class="docutils literal notranslate"><span class="pre">pdot_shk()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.convenience.write_to_csv"><code class="docutils literal notranslate"><span class="pre">write_to_csv()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#peebee.transforms.convert_to_frame"><code class="docutils literal notranslate"><span class="pre">convert_to_frame()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#peebee.glob.fix_arrays"><code class="docutils literal notranslate"><span class="pre">fix_arrays()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.fitter.approx_hess_inv"><code class="docutils literal notranslate"><span class="pre">approx_hess_inv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.fitter.rss"><code class="docutils literal notranslate"><span class="pre">rss()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.fitter.rss_no_update"><code class="docutils literal notranslate"><span class="pre">rss_no_update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.sampler.sample_alos_sources_RPL"><code class="docutils literal notranslate"><span class="pre">sample_alos_sources_RPL()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peebee.sampler.sample_alos_sources_uniform"><code class="docutils literal notranslate"><span class="pre">sample_alos_sources_uniform()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-peebee">Module contents</a></li>
@@ -409,6 +415,11 @@
 <span class="sig-prename descclassname"><span class="pre">peebee.convenience.</span></span><span class="sig-name descname"><span class="pre">pdot_shk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#peebee.convenience.pdot_shk" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="peebee.convenience.write_to_csv">
+<span class="sig-prename descclassname"><span class="pre">peebee.convenience.</span></span><span class="sig-name descname"><span class="pre">write_to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">titles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#peebee.convenience.write_to_csv" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <p id="module-peebee.transforms">Text here for Sphinx (I think)</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="peebee.transforms.convert_to_frame">
@@ -420,6 +431,33 @@ This doesn’t need to show up in Sphinx.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="peebee.glob.fix_arrays">
 <span class="sig-prename descclassname"><span class="pre">peebee.glob.</span></span><span class="sig-name descname"><span class="pre">fix_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#peebee.glob.fix_arrays" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function" id="module-peebee.fitter">
+<dt class="sig sig-object py" id="peebee.fitter.approx_hess_inv">
+<span class="sig-prename descclassname"><span class="pre">peebee.fitter.</span></span><span class="sig-name descname"><span class="pre">approx_hess_inv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dparams</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#peebee.fitter.approx_hess_inv" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="peebee.fitter.rss">
+<span class="sig-prename descclassname"><span class="pre">peebee.fitter.</span></span><span class="sig-name descname"><span class="pre">rss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#peebee.fitter.rss" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="peebee.fitter.rss_no_update">
+<span class="sig-prename descclassname"><span class="pre">peebee.fitter.</span></span><span class="sig-name descname"><span class="pre">rss_no_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alos_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#peebee.fitter.rss_no_update" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p id="module-peebee.sampler">Text here for Sphinx (I think)
+#Written by Tom Donlon, 2024, UAH</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="peebee.sampler.sample_alos_sources_RPL">
+<span class="sig-prename descclassname"><span class="pre">peebee.sampler.</span></span><span class="sig-name descname"><span class="pre">sample_alos_sources_RPL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">com</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rscale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">up_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#peebee.sampler.sample_alos_sources_RPL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="peebee.sampler.sample_alos_sources_uniform">
+<span class="sig-prename descclassname"><span class="pre">peebee.sampler.</span></span><span class="sig-name descname"><span class="pre">sample_alos_sources_uniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#peebee.sampler.sample_alos_sources_uniform" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </section>

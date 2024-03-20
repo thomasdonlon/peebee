@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; peebee 0.0.6 documentation</title>
+  <title>Index &mdash; peebee 0.0.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -14,7 +14,7 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=1fd71caa"></script>
+        <script src="_static/documentation_options.js?v=bbaf98b3"></script>
         <script src="_static/doctools.js?v=888ff710"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -85,8 +85,10 @@
  | <a href="#N"><strong>N</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#Q"><strong>Q</strong></a>
+ | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#W"><strong>W</strong></a>
  
 </div>
 <h2 id="A">A</h2>
@@ -139,6 +141,8 @@
       <li><a href="peebee.html#peebee.convenience.alos_obs">alos_obs() (in module peebee.convenience)</a>
 </li>
       <li><a href="peebee.html#peebee.models.AnharmonicDisk">AnharmonicDisk (class in peebee.models)</a>
+</li>
+      <li><a href="peebee.html#peebee.fitter.approx_hess_inv">approx_hess_inv() (in module peebee.fitter)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -242,9 +246,13 @@
 </li>
         <li><a href="peebee.html#module-peebee.convenience">peebee.convenience</a>
 </li>
+        <li><a href="peebee.html#module-peebee.fitter">peebee.fitter</a>
+</li>
         <li><a href="peebee.html#module-peebee.glob">peebee.glob</a>
 </li>
         <li><a href="peebee.html#module-peebee.models">peebee.models</a>
+</li>
+        <li><a href="peebee.html#module-peebee.sampler">peebee.sampler</a>
 </li>
         <li><a href="peebee.html#module-peebee.transforms">peebee.transforms</a>
 </li>
@@ -295,6 +303,13 @@
         <li><a href="peebee.html#module-peebee.convenience">module</a>
 </li>
       </ul></li>
+      <li>
+    peebee.fitter
+
+      <ul>
+        <li><a href="peebee.html#module-peebee.fitter">module</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
@@ -309,6 +324,13 @@
 
       <ul>
         <li><a href="peebee.html#module-peebee.models">module</a>
+</li>
+      </ul></li>
+      <li>
+    peebee.sampler
+
+      <ul>
+        <li><a href="peebee.html#module-peebee.sampler">module</a>
 </li>
       </ul></li>
       <li>
@@ -335,23 +357,39 @@
   </ul></td>
 </tr></table>
 
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="peebee.html#peebee.fitter.rss">rss() (in module peebee.fitter)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="peebee.html#peebee.fitter.rss_no_update">rss_no_update() (in module peebee.fitter)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="peebee.html#peebee.sampler.sample_alos_sources_RPL">sample_alos_sources_RPL() (in module peebee.sampler)</a>
+</li>
+      <li><a href="peebee.html#peebee.sampler.sample_alos_sources_uniform">sample_alos_sources_uniform() (in module peebee.sampler)</a>
+</li>
       <li><a href="peebee.html#peebee.models.CompositeModel.set_params">set_params() (peebee.models.CompositeModel method)</a>
 
       <ul>
         <li><a href="peebee.html#peebee.models.Model.set_params">(peebee.models.Model method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="peebee.html#peebee.models.QuillenFlexible.set_vert_only">set_vert_only() (peebee.models.QuillenFlexible method)</a>
 
       <ul>
         <li><a href="peebee.html#peebee.models.QuillenVariableVcirc.set_vert_only">(peebee.models.QuillenVariableVcirc method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="peebee.html#peebee.models.SinusoidalDisk">SinusoidalDisk (class in peebee.models)</a>
 </li>
       <li><a href="peebee.html#peebee.models.SphericalFlatRC">SphericalFlatRC (class in peebee.models)</a>
@@ -368,6 +406,14 @@
         <li><a href="peebee.html#peebee.models.Model.toggle_log_params">(peebee.models.Model method)</a>
 </li>
       </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="peebee.html#peebee.convenience.write_to_csv">write_to_csv() (in module peebee.convenience)</a>
+</li>
   </ul></td>
 </tr></table>
 
