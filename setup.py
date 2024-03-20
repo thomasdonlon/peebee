@@ -26,7 +26,6 @@ setuptools.setup(
         "uncertainties",
         "astropy",
         "scipy",
-        "pandas",
         "gala",
         "galpy"
         ],

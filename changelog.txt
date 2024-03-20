@@ -4,6 +4,7 @@ v0.0.7
  - added write_to_csv() to convenience module
  - tweaked sphinx stuff
  - added readthedocs page
+ - changed requirements in setup.py and docs/requirements.txt
 
 v0.0.6
  - Added fitter.py module

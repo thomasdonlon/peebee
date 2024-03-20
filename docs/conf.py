@@ -20,7 +20,7 @@ release = '0.0.7' #TODO: read this from a file
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
-              'sphinx_math_dollar']
+              'sphinx.ext.imgmath']
               
 #removed sphinx_math_dollar
 #removed sphinx.ext.imgmath
