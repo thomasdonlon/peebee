@@ -26,6 +26,16 @@ peebee.models module
    :members:
    :undoc-members:
    :show-inheritance:
+   
+.. automodule:: peebee.fitter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
+.. automodule:: peebee.sampler
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------

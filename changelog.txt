@@ -1,3 +1,8 @@
+v0.0.7
+ - Added sampler.py module
+ - added radial power law and uniform samplers to sampler module
+ - added write_to_csv() to convenience module
+
 v0.0.6
  - Added fitter.py module
 

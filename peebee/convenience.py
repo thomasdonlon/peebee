@@ -206,4 +206,33 @@ def dm_over_bary_alos(l, b, d, model_bary, model_dm, frame='gal'):
 
 	return np.abs(alos_dm)/np.abs(alos_bary)
 
+#I can never be bothered to write out a pandas df or whatever so I wrote this instead
+def write_to_csv(path, *args, titles=None):
+	#the first arg always needs to be the path name
+
+	if len(args) == 0: 
+		raise Exception("Have to provide at least one array-like in addition to the file path")
+
+	path = args[0]
+
+	#start piping to file
+	with open(path, 'w') as f: #automatically closes file when out of scope
+
+		#write the header if titles were given
+		if not (titles is None):
+			title_str = ''
+			for title in titles:
+				title_str += title + ','
+			title_str.rstrip(',') #adds 1 too many commas
+			title_str += '\n'
+			f.write(title_str)
+
+		#write data
+		for i in range(len(args[1])):
+			out_str = ''
+			for j in range(len(args)):
+				out_str += str(args[i][j]) + ','
+			out_str.rstrip(',') #adds 1 too many commas
+			out_str += '\n'
+			f.write(out_str)
 

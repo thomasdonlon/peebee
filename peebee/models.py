@@ -1,5 +1,4 @@
-#helper file for model_diff.py, stores all the info about models 
-#Written by Tom Donlon, 2023, UAH
+#Written by Tom Donlon, 2023-2024, UAH
 
 #TODO: dict names can collide when adding two models if param names are identical
 #TODO: implement astropy units in a way that ensures proper units are always output
@@ -22,7 +21,7 @@ G = 4.516e-39 #kpc^3/Msun/s^2  (all accels will be in kpc/s^2) #kpc/s^2 * kpc^2/
 Rsun = 8.178 #kpc
 vlsr = 232.8 #km/s
 kmtokpc = 3.241e-17
-rho_crit = 125.6 #msun/kpc^3
+rho_crit = 125.6 #critical density assuming LCDM, msun/kpc^3
 c = 9.716e-12 #kpc/s
 
 # #===================================================================
