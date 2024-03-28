@@ -7,7 +7,7 @@ from .glob import fix_arrays, r_sun
 
 #stolen from mwahpy
 @fix_arrays
-def gal_to_cart(l, b, r, left_handed=True, rad=False):
+def gal_to_cart(l, b, r, left_handed=True, rad=False, sun_pos=(r_sun, 0., 0.)):
 	"""
 	Transform from a heliocentric Galactic coordinate system to a Galactocentric Cartesian coordinate system.
 
@@ -20,18 +20,18 @@ def gal_to_cart(l, b, r, left_handed=True, rad=False):
 		l = l*np.pi/180
 		b = b*np.pi/180
 
-	x = r*np.cos(l)*np.cos(b) + r_sun
+	x = r*np.cos(l)*np.cos(b) + sun_pos[0]
 	if left_handed:
 		x *= -1
 
-	y = r*np.sin(l)*np.cos(b)
-	z = r*np.sin(b)
+	y = r*np.sin(l)*np.cos(b) + sun_pos[1]
+	z = r*np.sin(b) + sun_pos[2]
 
 	return x, y, z
 
 #stolen from mwahpy
 @fix_arrays
-def cart_to_gal(x, y, z, left_handed=True):
+def cart_to_gal(x, y, z, left_handed=True, sun_pos=(r_sun, 0., 0.)):
 	"""
 	Transform from a heliocentric Galactic coordinate system to a Galactocentric Cartesian coordinate system.
 
@@ -41,12 +41,12 @@ def cart_to_gal(x, y, z, left_handed=True):
 	"""
 
 	if left_handed:
-		r = ((x-r_sun)**2 + y**2 + z**2)**0.5
-		l = np.arctan2(y,-1*(x-r_sun))*180/np.pi
+		r = ((x-sun_pos[0])**2 + (y-sun_pos[1])**2 + (z-sun_pos[2])**2)**0.5
+		l = np.arctan2((y-sun_pos[1]),-1*(x-sun_pos[0]))*180/np.pi
 	else:
-		r = ((x+r_sun)**2 + y**2 + z**2)**0.5
-		l = np.arctan2(y,(x+r_sun))*180/np.pi
-	b = np.arcsin(z/r)*180/np.pi
+		r = ((x+sun_pos[0])**2 + (y-sun_pos[1])**2 + (z-sun_pos[2])**2)**0.5
+		l = np.arctan2((y-sun_pos[1]),(x+sun_pos[0]))*180/np.pi
+	b = np.arcsin((z-sun_pos[2])/r)*180/np.pi
 
 	return l, b, r
 
@@ -76,6 +76,12 @@ def convert_to_frame(fr):
 			except KeyError: #not passed
 				return func(*args, **kwargs)
 
+			#check whether sun_pos kwarg was passed into func
+			try:
+				sun_pos = kwargs['sun_pos']
+			except KeyError: #not passed
+				sun_pos = (r_sun, 0., 0.) #peebee default
+
 			#the "correct" way of checking if func is a method is broken so let's do it the "naive" way
 			offset = 0
 			try:
@@ -98,7 +104,7 @@ def convert_to_frame(fr):
 				b = coords.b.value
 
 			elif frame == 'cart': #fr is not cart
-				l, b, d = cart_to_gal(args[offset+0], args[offset+1], args[offset+2])
+				l, b, d = cart_to_gal(args[offset+0], args[offset+1], args[offset+2], sun_pos=sun_pos)
 
 			elif frame == 'gal': #fr is not gal
 				l, b, d = args[offset+0], args[offset+1], args[offset+2]
@@ -114,7 +120,7 @@ def convert_to_frame(fr):
 				else:
 					args = tmp_args
 			elif fr == 'cart':
-				x, y, z = gal_to_cart(l, b, d)
+				x, y, z = gal_to_cart(l, b, d, sun_pos=sun_pos)
 				tmp_args = [x, y, z] + list(args[offset+3:])
 				if offset:
 					args = [args[0]] + tmp_args

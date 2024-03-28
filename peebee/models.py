@@ -12,7 +12,7 @@ from gala.potential.potential import MiyamotoNagaiPotential
 from gala.units import UnitSystem
 
 from .transforms import convert_to_frame
-from .glob import fix_arrays
+from .glob import fix_arrays, r_sun
 
 #G = 4.301e-6 #kpc/Msun (km/s)^2
 G = 4.516e-39 #kpc^3/Msun/s^2  (all accels will be in kpc/s^2) #kpc/s^2 * kpc^2/Msun
@@ -55,6 +55,23 @@ class Model:
 	def nparams(self):
 		return len(self.param_names)
 
+	@property #shows up as self.n_opt_params
+	def n_opt_params(self): #count the number of non-None objects in self.param_defaults dict
+		return np.sum(np.array([not v is None for v in self.param_defaults])) #yeah it's gross but one liners are sick
+
+	@property #shows up as self.n_req_params
+	def n_req_params(self):
+		return self.nparams - self.n_opt_params
+
+	def param_names_to_str(self):
+		out = ''
+		for pname, i in self.param_names:
+			if not self.param_defaults[i] is None:
+				out += pname + ', '
+			else:
+				out += pname + '(opt.), ' 
+		return out.rstrip(', ')
+
 	#to be called when making a new model, after setting name, the param names, etc.
 	def _finish_init_model(self, **kwargs):
 		if len(kwargs) == 0: #handle the Model() init case, set everything = 1.
@@ -63,7 +80,14 @@ class Model:
 				params[j] = 1.
 		else:
 			params = kwargs
-		self.set_params(params, ignore_name_check=True)
+
+		#auto-fill any missing values (if they have defaults)
+		while len(params) < len(self.param_names):
+			for i, pname in enumerate(self.param_names):
+				if not pname in params:
+					params[pname] = self.param_defaults[i]
+
+		self.set_params(params, ignore_name_check=False)
 		self._logparams = [0]*self.nparams
 
 	def set_params(self, params, ignore_name_check=False):
@@ -72,9 +96,10 @@ class Model:
 
 		#assert that parameters have the correct length and that the names match
 		#the name matching thing might be overkill but it prevents some potential headaches -- if it ends up being too slow it could be supressed
-		assert self.nparams == len(params), f'{self.name} Model requires 0 or {self.nparams} arguments ({self.param_names})'
+		assert self.nparams == len(params), f'{self.name} Model requires 0 or {self.n_req_params}-{self.nparams} arguments ({self.param_names_to_str()})'
 		if not ignore_name_check:
-			assert set(self.params.keys()) == set(params.keys()), f'Name Mismatch(es) in params: {self.name} Model has parameters {set(self.param_names)} but {set(params.keys())} were provided.'
+			if not set(self.param_names) == set(params.keys()):
+				raise Exception(f'Name Mismatch(es) in params: {self.name} Model has parameters {set(self.param_names)} but {set(params.keys())} were provided.')
 		
 		for i in range(len(self.param_names)):
 			self.params[self.param_names[i]] = params[self.param_names[i]]
@@ -87,15 +112,15 @@ class Model:
 
 	@fix_arrays
 	@convert_to_frame('gal')
-	def alos(self, l, b, d, frame='gal', d_err=None): #includes solar accel!
+	def alos(self, l, b, d, frame='gal', d_err=None, sun_pos=(r_sun, 0., 0.)): #includes solar accel!
 
-		#heliocentric
+		#heliocentric, can't use frame='cart' because that's Galactocentric
 		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
 		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
 		z = d*np.sin(b*np.pi/180)
 
-		alossun = np.array(self.accel(Rsun,0.,0.)).T
-		accels = np.array(self.accel(Rsun + x, y, z)).T - alossun  #subtract off solar accel
+		alossun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
+		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - alossun  #subtract off solar accel
 
 		los_vecs = (np.array([x, y, z]/d).T)
 		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
@@ -105,8 +130,8 @@ class Model:
 
 		if d_err is not None:
 
-			alos_plus_derr = self.alos(l, b, d+d_err)
-			alos_minus_derr = self.alos(l, b, d-d_err)
+			alos_plus_derr = self.alos(l, b, d+d_err, sun_pos=sun_pos)
+			alos_minus_derr = self.alos(l, b, d-d_err, sun_pos=sun_pos)
 
 			return los_accels, np.abs(alos_plus_derr - alos_minus_derr)/2
 
@@ -178,7 +203,9 @@ class CompositeModel:
 		for i, m in enumerate(self.models):
 			m.set_params(params[i])
 
-	def accel(self, x, y, z, **kwargs): #should catch everything? Don't think we currently pass any kwargs to accel though
+	@fix_arrays
+	@convert_to_frame('cart')
+	def accel(self, x, y, z, frame='cart', **kwargs): #should catch everything? Don't think we currently pass any kwargs to accel though
 		if len(self.models) == 0:
 			raise NotImplementedError('Uninitialized CompositeModel has no Models.')
 		else:
@@ -193,18 +220,17 @@ class CompositeModel:
 				out += m.accel(x, y, z, **kwargs)
 			return out[0], out[1], out[2]
 
-	def alos(self, l, b, d): #includes solar accel!
-		#heliocentric
+	@fix_arrays
+	@convert_to_frame('gal')
+	def alos(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.)): #includes solar accel!
+
+		#heliocentric, can't use frame='cart' because that's Galactocentric
 		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
 		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
 		z = d*np.sin(b*np.pi/180)
 
-		alossun = np.array(self.accel(Rsun,0.,0.)).T
-		#accels = np.array([a - alossun for a in np.array(self.accel(Rsun + x, y, z)).T])  #subtract off solar accel
-		accels = np.array(self.accel(Rsun + x, y, z)).T - alossun  #subtract off solar accel
-		# print('alossun', alossun)
-		# print('accels', np.array(self.accel(Rsun + x, y, z)).T)
-		# print('Relative accels', accels)
+		alossun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
+		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - alossun  #subtract off solar accel
 
 		los_vecs = (np.array([x, y, z]/d).T)
 		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
@@ -243,15 +269,17 @@ class NFW(Model):
 		super().__init__()
 		self.name = 'NFW'
 		self.param_names = ['m_vir', 'r_s', 'q']
+		self.param_defaults = [None, None, 1.] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z):
 		mvir, rs, q = self.log_corr_params()
 
-		if q is None:
-			r = (x**2 + y**2 + z**2)**0.5
-		else:
-			r = (x**2 + y**2 + (z/q)**2)**0.5
+		#TODO: remove this later if it isn't a problem
+		# if q is None:
+		# 	r = (x**2 + y**2 + z**2)**0.5
+		# else:
+		r = (x**2 + y**2 + (z/q)**2)**0.5
 		R = (x**2 + y**2)**0.5
 
 		rvir = (3/(4*np.pi) * mvir / (200*rho_crit))**(1/3) 
@@ -269,7 +297,7 @@ class NFW(Model):
 		ay = ar_r*y
 		az = ar_r*z #also z/q?
 
-		return ax,ay,az
+		return ax, ay, az
 
 #--------------------------
 # Hernquist
@@ -280,6 +308,7 @@ class Hernquist(Model):
 		super().__init__()
 		self.name = 'Hernquist'
 		self.param_names = ['m_tot', 'r_s']
+		self.param_defaults = [None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z):
@@ -294,7 +323,36 @@ class Hernquist(Model):
 		ax = ar*x/R
 		ay = ar*y/R
 
-		return ax,ay,az
+		return ax, ay, az
+
+#--------------------------
+# Plummer
+#--------------------------
+class Plummer(Model):
+
+	def __init__(self, **kwargs):
+		super().__init__()
+		self.name = 'Plummer'
+		self.param_names = ['m_tot', 'r_s', 'x', 'y', 'z'] 
+		self.param_defaults = [None, None, 0., 0., 0.] #None if required param
+		self._finish_init_model(**kwargs)
+
+	def accel(self, x, y, z):
+
+		mtot, rs, xc, yc, zc = self.log_corr_params()
+
+		if (xc is None) or (yc is None) or (zc is None):
+			xc, yc, zc = 0., 0., 0.
+
+		xi, yi, zi = x-xc, y-yc, z-zc
+
+		ri = np.sqrt(xi**2 + yi**2 + zi**2)
+		frac = -G*mtot/((ri**2 + rs**2)**(3/2))
+		ax = frac*xi
+		ay = frac*yi
+		az = frac*zi
+	
+		return ax, ay, az
 
 #--------------------------
 # Miyamoto-Nagai Disk
@@ -305,6 +363,7 @@ class MiyamotoNagaiDisk(Model):
 		super().__init__()
 		self.name = 'Miyamoto-Nagai Disk'
 		self.param_names = ['m_tot', 'a', 'b']
+		self.param_defaults = [None, None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self,x,y,z):
@@ -319,7 +378,7 @@ class MiyamotoNagaiDisk(Model):
 		ax = ar*x/R
 		ay = ar*y/R
 
-		return ax,ay,az
+		return ax, ay, az
 
 	# #gala version (very slow!)
 	# def accel(self,x,y,z):
@@ -342,6 +401,7 @@ class PointMass(Model):
 		super().__init__()
 		self.name = 'Point Mass'
 		self.param_names = ['m', 'x', 'y', 'z']
+		self.param_defaults = [None, 0., 0., 0.] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self,x,y,z):
@@ -356,57 +416,19 @@ class PointMass(Model):
 		ay = ai*yi
 		az = ai*zi
 
-		return ax,ay,az
+		return ax, ay, az
 
 #--------------------------
-# Quillen Beta
+# Alpha Beta (flexible implementation)
 #--------------------------
-class QuillenFlexible(Model): #TODO: a more elegant updating scheme that takes into account whether alpha2 and beta are set
-
-	#vert_only flg allows you to just use the vertical potential
-	def __init__(self, vert_only=False, **kwargs):
-		super().__init__()
-		self.name = 'Quillen Flexible'
-		self.param_names = ['alpha1', 'alpha2', 'beta']
-		self._vert_only = vert_only
-		self._finish_init_model(**kwargs)
-
-	def set_vert_only(self, b):
-		self._vert_only = b
-
-	def accel(self,x,y,z):
-		alpha1, alpha2, beta = self.log_corr_params()
-
-		if alpha2 is None:
-			alpha2 = 0.
-
-		R = (x**2 + y**2)**0.5
-
-		#az = -alpha1*z - alpha2*(z*z)*np.sign(z)
-		az = -alpha1*z - alpha2*z**2
-		if self._vert_only:
-			ar = 0.
-		else:
-			if beta is None:
-				ar = vlsr**2/R*kmtokpc**2
-			else:
-				ar = (vlsr**2*kmtokpc**2)*((1./Rsun)**(2.*beta))*(R**((2.*beta)-1.))
-
-		ax = -ar*x/R
-		ay = -ar*y/R
-
-		return ax,ay,az
-
-#--------------------------
-# Quillen Beta
-#--------------------------
-class QuillenVariableVcirc(Model): #TODO: a more elegant updating scheme that takes into account whether alpha2 and beta are set
+class OortExpansion(Model):
 
 	#vert_only flg allows you to just use the vertical potential
 	def __init__(self, vert_only=False, **kwargs):
 		super().__init__()
 		self.name = 'Quillen Flexible'
 		self.param_names = ['alpha1', 'alpha2', 'beta', 'vcirc']
+		self.param_defaults = [None, 0., 0., 0.] #None if required param
 		self._vert_only = vert_only
 		self._finish_init_model(**kwargs)
 
@@ -416,17 +438,21 @@ class QuillenVariableVcirc(Model): #TODO: a more elegant updating scheme that ta
 	def accel(self,x,y,z):
 		alpha1, alpha2, beta, vcirc = self.log_corr_params()
 
-		if alpha2 is None:
-			alpha2 = 0.
+		#TODO: remove this later if there aren't problems
+		# if alpha2 is None:
+		# 	alpha2 = 0.
+
+		if vcirc == 0.:
+			vcirc = vlsr
 
 		R = (x**2 + y**2)**0.5
 
-		#az = -alpha1*z - alpha2*(z*z)*np.sign(z)
 		az = -alpha1*z - alpha2*z**2
+
 		if self._vert_only:
 			ar = 0.
 		else:
-			if beta is None:
+			if beta == 0.:
 				ar = vcirc**2/R*kmtokpc**2
 			else:
 				ar = (vcirc**2*kmtokpc**2)*((1./Rsun)**(2.*beta))*(R**((2.*beta)-1.))
@@ -434,7 +460,7 @@ class QuillenVariableVcirc(Model): #TODO: a more elegant updating scheme that ta
 		ax = -ar*x/R
 		ay = -ar*y/R
 
-		return ax,ay,az
+		return ax, ay, az
 
 #--------------------------
 # Cross
@@ -445,6 +471,7 @@ class Cross(Model):
 		super().__init__()
 		self.name = 'Cross'
 		self.param_names = ['alpha', 'gamma']
+		self.param_defaults = [None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self,x,y,z):
@@ -462,12 +489,12 @@ class Cross(Model):
 		ax = -ar*x/R
 		ay = -ar*y/R
 
-		return ax,ay,az
+		return ax, ay, az
 
 #--------------------------
 # Anharmonic Disk
 #--------------------------
-class AnharmonicDisk(Model):
+class AnharmonicDisk(Model): #TODO: can in theory take as many terms of the power expansion as you want
 
 	#alpha1 = 1/s^2
 	#alpha2 = 1/s^2/kpc
@@ -477,16 +504,18 @@ class AnharmonicDisk(Model):
 		self.name = 'Anharmonic Disk'
 		self.neg_alpha2 = neg_alpha2
 		self.param_names = ['alpha1', 'alpha2', 'alpha3']
+		self.param_defaults = [None, 0., 0.] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z):
 		alpha1, alpha2, alpha3 = self.log_corr_params()
 
-		#allow alpha2 and 3 to be None; note large overlap with qbeta, might want to combine these two?
-		if alpha2 is None:
-			alpha2 = 0.
-		if alpha3 is None:
-			alpha3 = 0.
+		#TODO: remove this later if no problems
+		# #allow alpha2 and 3 to be None; note large overlap with qbeta, might want to combine these two?
+		# if alpha2 is None:
+		# 	alpha2 = 0.
+		# if alpha3 is None:
+		# 	alpha3 = 0.
 
 		if self.neg_alpha2:
 			alpha2 *= -1
@@ -494,13 +523,12 @@ class AnharmonicDisk(Model):
 		R = (x**2 + y**2)**0.5
 
 		ar = -vlsr**2/R*kmtokpc**2
-		#print(-alpha1*z, - alpha2*z**2, - alpha3*z**3)
 		az = -alpha1*z - alpha2*z**2 - alpha3*z**3
 
 		ax = ar*x/R
 		ay = ar*y/R
 
-		return ax,ay,az
+		return ax, ay, az
 
 #--------------------------
 # Sinusoidal Disk
@@ -515,6 +543,7 @@ class SinusoidalDisk(Model):
 		super().__init__()
 		self.name = 'Anharmonic Disk'
 		self.param_names = ['alpha', 'amp', 'lambda', 'phi']
+		self.param_defaults = [None, None, None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z):
@@ -530,7 +559,7 @@ class SinusoidalDisk(Model):
 		ax = ar*x/R
 		ay = ar*y/R
 
-		return ax,ay,az
+		return ax, ay, az
 
 #--------------------------
 # Isothermal Disk
@@ -544,6 +573,7 @@ class IsothermalDisk(Model):
 		super().__init__()
 		self.name = 'Isothermal Disk'
 		self.param_names = ['sigma', 'z0', 'b']
+		self.param_defaults = [None, None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z):
@@ -557,7 +587,7 @@ class IsothermalDisk(Model):
 		ax = ar*x/R
 		ay = ar*y/R
 
-		return ax,ay,az
+		return ax, ay, az
 
 #--------------------------
 # Local Expansion
@@ -571,6 +601,7 @@ class LocalExpansion(Model):
 		super().__init__()
 		self.name = 'Local Expansion'
 		self.param_names = ['dadr', 'dadphi', 'dadz']
+		self.param_defaults = [None, None, None] #None if required param
 		self._finish_init_model(**kwargs)
 		self.neg_dadr = neg_dadr
 		self.neg_dadphi = neg_dadphi
@@ -595,7 +626,7 @@ class LocalExpansion(Model):
 		ax = ar*x/R + aphi*y/R
 		ay = ar*y/R + aphi*x/R
 
-		return ax,ay,az
+		return ax, ay, az
 
 #---------------------------------------------------------------------------
 # (Outdated) PTA Expansion
@@ -607,6 +638,7 @@ class DamourTaylorPotential(Model):
 		super().__init__()
 		self.name = 'Damour-Taylor Potential'
 		self.param_names = []
+		self.param_defaults = []
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z):
@@ -619,7 +651,7 @@ class DamourTaylorPotential(Model):
 		ax = ar*x/R
 		ay = ar*y/R
 
-		return ax,ay,az
+		return ax, ay, az
 
 #---------------------------------------------------------------------------
 # Spherical 
@@ -630,22 +662,26 @@ class SphericalFlatRC(Model):
 	def __init__(self, **kwargs):
 		super().__init__()
 		self.name = 'Spherical Potential with Flat Rotation Curve'
-		self.param_names = []
+		self.param_names = ['vcirc']
+		self.param_defaults = [0.] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z):
+
+		if vcirc == 0.:
+			vcirc = vlsr
 
 		r = (x**2 + y**2 + z**2)**0.5 #galactocentric
 		l = np.arctan2(y, -x)
 		b = np.arcsin(z/r)
 
-		ar = -(vlsr*kmtokpc)**2/r
+		ar = -(vcirc*kmtokpc)**2/r
 
 		ax = -ar*np.cos(l)*np.cos(b)
 		ay = ar*np.sin(l)*np.cos(b)
 		az = ar*np.sin(b)
 
-		return ax,ay,az
+		return ax, ay, az
 
 #-------------------------------------------------
 # Generic Gala Potential Wrapper
@@ -661,6 +697,7 @@ class GalaPotential(Model):
 		super().__init__()
 		self.name = 'Gala Potential Instance'
 		self.param_names = []
+		self.param_defaults = []
 		self._finish_init_model(**kwargs)
 		self.pot = pot
 
@@ -674,7 +711,7 @@ class GalaPotential(Model):
 		else:
 			return a[0], a[1], a[2]
 
-		return ax,ay,az
+		return ax, ay, az
 
 #--------------------------
 
@@ -690,6 +727,7 @@ class GalpyPotential(Model):
 		super().__init__()
 		self.name = 'Galpy Potential Instance'
 		self.param_names = []
+		self.param_defaults = []
 		self._finish_init_model(**kwargs)
 		self.pot = pot
 
@@ -703,6 +741,6 @@ class GalpyPotential(Model):
 		ax = ar*x/R
 		ay = ar*y/R
 
-		return ax,ay,az
+		return ax, ay, az
 
 #--------------------------

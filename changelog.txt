@@ -1,3 +1,12 @@
+v0.0.8
+ - Added Plummer profile to models
+ - some bug fixes in models and convenience
+ - added optional parameters in models, reworked some class stuff to make that work
+ - QuillenVariableVcirc has now been absorbed into QuillenFlexible
+ - QuillenFlexible has been renamed OortExpansion
+ - added sun_pos kwarg to model.alos(), is also passed through anything that uses the convert_to_frame decorator
+ - altered sphinx code and directory setup so everything is on RTD now, no local build to worry about or push to git
+
 v0.0.7
  - Added sampler.py module
  - added radial power law and uniform samplers to sampler module

@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'peebee'
 copyright = '2024, Tom Donlon'
 author = 'Tom Donlon'
-release = '0.0.7' #TODO: read this from a file
+release = '0.0.8' #TODO: read this from a file
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

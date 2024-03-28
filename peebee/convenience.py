@@ -77,7 +77,6 @@ def pdot_shk(p, mu, d):
 	"""
 	Compute $\\dot{P}^\\mathrm{Shk}$, the change in observed period due to the Shklovskii Effect (See Shklovskii, 1970).
 	
-
 	:p: (Orbital or spin) period (s)
 	:mu: Total proper motion (mas/yr)
 	:d: Distance from Sun (kpc)
@@ -208,12 +207,9 @@ def dm_over_bary_alos(l, b, d, model_bary, model_dm, frame='gal'):
 
 #I can never be bothered to write out a pandas df or whatever so I wrote this instead
 def write_to_csv(path, *args, titles=None):
-	#the first arg always needs to be the path name
 
 	if len(args) == 0: 
 		raise Exception("Have to provide at least one array-like in addition to the file path")
-
-	path = args[0]
 
 	#start piping to file
 	with open(path, 'w') as f: #automatically closes file when out of scope
@@ -228,10 +224,10 @@ def write_to_csv(path, *args, titles=None):
 			f.write(title_str)
 
 		#write data
-		for i in range(len(args[1])):
+		for i in range(len(args[0])):
 			out_str = ''
 			for j in range(len(args)):
-				out_str += str(args[i][j]) + ','
+				out_str += str(args[j][i]) + ','
 			out_str.rstrip(',') #adds 1 too many commas
 			out_str += '\n'
 			f.write(out_str)

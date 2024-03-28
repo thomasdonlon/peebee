@@ -5,6 +5,7 @@ This doesn't need to show up in Sphinx.
 
 #TODO: Needs an automatic astropy converison decorator (check if quantities are being used, and if they are convert to the correct units)
 #      Otherwise assume kpc, s, Msun, etc. 
+#TODO: Should be a way to set/update solar position globally rather than every time you input x, y, z somewhere
 
 import numpy as np
 import astropy.units as u
@@ -16,6 +17,7 @@ from astropy.coordinates import SkyCoord
 #===============================================================================
 
 r_sun = 8.0 #kpc
+
 kpcs2tommsyr = 9.731e29 
 kpctocm = 3.086e21 # convert kpc to cm
 
