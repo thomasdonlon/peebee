@@ -126,16 +126,16 @@ def alos_obs(*args, frame='gal'):
 	pbdot_obs = args[4]
 	mu = args[5]
 
-	pbdot_shk = pdot_shk(pb, mu, d)
+	pbdot_shk_i = pdot_shk(pb, mu, d)
 
-	pbdot_gr = 0 #if non_gr mode, just ignore gr term
+	pbdot_gr_i = 0 #if non_gr mode, just ignore gr term
 	if mode == 'gr':
 		mp = args[6]
 		mc = args[7]
 		e = args[8]
-		pbdot_gr = pbdot_gr(pb, mp, mc, e)
+		pbdot_gr_i = pbdot_gr(pb, mp, mc, e)
 
-	pbdot_act = pbdot_obs - pbdot_shk - pbdot_gr
+	pbdot_act = pbdot_obs - pbdot_shk_i - pbdot_gr_i
 
 	#should get c from somewhere, also unitful rather than hard-coded conversion here
 	return pbdot_act*3e8/pb*3.154e10 #to mm/s/yr
