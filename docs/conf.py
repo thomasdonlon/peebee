@@ -23,7 +23,9 @@ release = '0.0.8' #TODO: read this from a file
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
-              'sphinx.ext.imgmath']
+              'sphinx.ext.imgmath',
+              'sphinx_automodapi.automodapi']
+numpydoc_show_class_members = False
               
 #removed sphinx_math_dollar
 #removed sphinx.ext.imgmath

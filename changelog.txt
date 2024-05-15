@@ -1,3 +1,9 @@
+v0.0.10
+ - changed the way that default/disabled parameters work to fix fitter.fit_model()
+ - added model.get_param_default() method for some 
+ - fitter catches singular matrices in the hessian so you can debug
+ - added UniformAccel model
+
 v0.0.9
  - bug fix in convenience.alos_obs()
 

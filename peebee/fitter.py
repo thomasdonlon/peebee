@@ -5,13 +5,13 @@ import astropy.units as u
 
 from .transforms import convert_to_frame
 from .models import Model, CompositeModel
-from .glob import kpctocm
+from .glob import kpctocm, r_sun
 
 #-----------------------------------------------------------------
 # Helper Functions
 #-----------------------------------------------------------------
 
-def rss(params, model, data, scale, print_out=False):
+def rss(params, model, data, scale, sun_pos, print_out=False): #has to take sun_pos as arg (not kwarg) for scipy func's
 
 	#scale is only a positional argument for the sake of how scipy passes things through optimization functions
 	#it is always set to 1. unless the user specifies a different value
@@ -24,8 +24,8 @@ def rss(params, model, data, scale, print_out=False):
 		new_params = dict()
 		i = 0
 		for n in model.param_names:
-			if model.params[n] is None:
-				new_params[n] = None
+			if n in model._disabled_param_names:
+				new_params[n] = model.get_param_default(n)
 			else:
 				new_params[n] = params[i]
 				i += 1
@@ -37,15 +37,15 @@ def rss(params, model, data, scale, print_out=False):
 		for m in model.models:
 			single_model_params = dict()
 			for n in m.param_names:
-				if m.params[n] is None:
-					single_model_params[n] = None
+				if n in m._disabled_param_names:
+					single_model_params[n] = m.get_param_default(n)
 				else:
 					single_model_params[n] = params[i]
 					i += 1
 			new_params.append(single_model_params)
 
 	model.set_params(new_params)
-	model_alos = model.alos(data['l'], data['b'], data['d'])
+	model_alos = model.alos(data['l'], data['b'], data['d'], sun_pos=sun_pos)
 	rss = np.sum((model_alos*kpctocm - data['alos'])**2/(data['alos_err']**2))*scale
 	if print_out:
 		print('model:', model_alos*kpctocm)
@@ -57,8 +57,8 @@ def rss(params, model, data, scale, print_out=False):
 		print()
 	return rss
 
-def rss_no_update(l, b, d, alos, alos_err, model, scale=1., print_out=True): #for evaluating existing models
-	model_alos = model.alos(l, b, d)
+def rss_no_update(l, b, d, alos, alos_err, model, scale=1., print_out=True, sun_pos=(r_sun, 0., 0.)): #for evaluating existing models
+	model_alos = model.alos(l, b, d, sun_pos=sun_pos)
 
 	if print_out:
 		print('model:', model_alos*kpctocm)
@@ -66,10 +66,10 @@ def rss_no_update(l, b, d, alos, alos_err, model, scale=1., print_out=True): #fo
 		print('residual:', (model_alos*kpctocm - alos))
 		print()
 
-	rss = np.sum((model_alos*kpctocm - alos)/(alos_err**2))*scale
+	rss = np.sum((model_alos*kpctocm - alos)**2/(alos_err**2))*scale
 	return rss
 
-def approx_hess_inv(params, model, data, dparams):
+def approx_hess_inv(params, model, data, dparams, sun_pos=(r_sun, 0., 0.)):
 	n_params = len(params)
 	hess = np.zeros((n_params, n_params))
 
@@ -81,27 +81,33 @@ def approx_hess_inv(params, model, data, dparams):
 				p = params.copy()
 				p[j] += dparams[j]
 				p[k] += dparams[k]
-				llpp = np.log(rss(p, model, data, 1.))
+				llpp = 0.5*rss(p, model, data, 1., sun_pos) #-lgL = chi^2/2
 
 				p = params.copy()
 				p[j] += dparams[j]
 				p[k] -= dparams[k]
-				llpm = np.log(rss(p, model, data, 1.))
+				llpm = 0.5*rss(p, model, data, 1., sun_pos)
 
 				p = params.copy()
 				p[j] -= dparams[j]
 				p[k] += dparams[k]
-				llmp = np.log(rss(p, model, data, 1.))
+				llmp = 0.5*rss(p, model, data, 1., sun_pos)
 
 				p = params.copy()
 				p[j] -= dparams[j]
 				p[k] -= dparams[k]
-				llmm = np.log(rss(p, model, data, 1.))
+				llmm = 0.5*rss(p, model, data, 1., sun_pos)
 
 				hess[j, k] = (llpp - llpm - llmp + llmm)/(4*dparams[j]*dparams[k])
 				hess[k,j] = hess[j,k] #make it symmetric
 
-	hess_inv = np.linalg.inv(hess)
+	try:
+		hess_inv = np.linalg.inv(hess)
+	except np.linalg.LinAlgError as err:
+		print('(probably) a singular matrix error: providing params and hess:')
+		print(f'params: {params}')
+		print(f'hess: {hess}')
+		raise err
 
 	return hess, hess_inv
 
@@ -111,8 +117,8 @@ def approx_hess_inv(params, model, data, dparams):
 
 #don't optimize anything, just spit out values, chi^2, AIC
 @convert_to_frame('gal')
-def evaluate_model(l, b, d, alos, alos_err, model, frame='gal', scale=1., print_out=True):
-	rss_eval = rss_no_update(l, b, d, alos, alos_err, model, scale=scale, print_out=print_out)
+def evaluate_model(l, b, d, alos, alos_err, model, frame='gal', scale=1., print_out=True, sun_pos=(r_sun, 0, 0)):
+	rss_eval = rss_no_update(l, b, d, alos, alos_err, model, scale=scale, print_out=print_out, sun_pos=sun_pos)
 	chi2 = rss_eval/(len(alos) - model.nparams)
 	aic = 2*len(alos) + rss_eval
 
@@ -126,7 +132,7 @@ def evaluate_model(l, b, d, alos, alos_err, model, frame='gal', scale=1., print_
 #TODO: implement shgo? other algos? 
 #TODO: implement MCMC version?
 @convert_to_frame('gal')
-def fit_model(l, b, d, alos, alos_err, model, bounds, frame='gal', mode='gd', scale=1., h=0.0001, **kwargs):
+def fit_model(l, b, d, alos, alos_err, model, bounds, frame='gal', mode='gd', scale=1., h=0.0001, sun_pos=(r_sun, 0, 0), **kwargs):
 	#mode needs to be either gd for gradient descent or de for differential evolution
 
 	#this just simplifies passing things through the different functions (without making the end user do it themselves)
@@ -148,16 +154,23 @@ def fit_model(l, b, d, alos, alos_err, model, bounds, frame='gal', mode='gd', sc
 	if mode == 'gd': #use gradient descent optimizer (fast but can get stuck in local minima if you don't know what the likelihood surface looks like)
 		if not ('x0' in kwargs.keys()):
 			raise Exception("x0 must be specified for fit_model option 'gd'")
-		result = minimize(rss, bounds=bounds, args=(model, data, scale,), **kwargs)
+		result = minimize(rss, bounds=bounds, args=(model, data, scale, sun_pos,), **kwargs)
 
 	elif mode == 'de': #use differential evolution as optimizer (slower but less likely to get stuck in local minima)
 
 		#gather relevant keywords for which we want to change the default values
-		popsize = 20*model.nparams
+		if isinstance(model, Model):
+			popsize = 20*model.nparams
+		elif isinstance(model, CompositeModel):
+			popsize = 20*np.sum(model.nparams)
+
 		if 'popsize' in kwargs.keys():
 			popsize = kwargs['popsize']
 
-		result = differential_evolution(rss, bounds, args=(model, data, scale,), popsize=popsize, **kwargs)
+			#and scrape it from the kwargs dict
+			kwargs.pop('popsize')
+
+		result = differential_evolution(rss, bounds, args=(model, data, scale, sun_pos,), popsize=popsize, **kwargs)
 
 	else:
 		raise Exception("Unsupported option for fit_model kwarg 'mode': currently supported values are ['gd', 'de']")
@@ -179,7 +192,7 @@ def fit_model(l, b, d, alos, alos_err, model, bounds, frame='gal', mode='gd', sc
 		print(f'Params: {model.params}')
 
 	#calculate errors
-	hess, hess_inv = approx_hess_inv(params, model, data, [h]*len(params))
+	hess, hess_inv = approx_hess_inv(params, model, data, [h]*len(params), sun_pos=sun_pos)
 	if print_out:
 		print(f'Hessian: {hess}')
 		print(f"Std. Errors: {np.diag(hess_inv/len(alos))**0.5}")

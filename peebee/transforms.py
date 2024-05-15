@@ -20,9 +20,10 @@ def gal_to_cart(l, b, r, left_handed=True, rad=False, sun_pos=(r_sun, 0., 0.)):
 		l = l*np.pi/180
 		b = b*np.pi/180
 
-	x = r*np.cos(l)*np.cos(b) + sun_pos[0]
+	x = r*np.cos(l)*np.cos(b)
 	if left_handed:
 		x *= -1
+	x += sun_pos[0]
 
 	y = r*np.sin(l)*np.cos(b) + sun_pos[1]
 	z = r*np.sin(b) + sun_pos[2]

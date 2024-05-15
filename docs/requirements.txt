@@ -1,6 +1,7 @@
 sphinx==7.2.6
 sphinx-math-dollar==1.2.1
 sphinx-rtd-theme==2.0.0
+sphinx-automodapi==0.17.0
 #readthedocs-sphinx-search==0.1.1
 numpy==1.26.4
 matplotlib==3.8.3

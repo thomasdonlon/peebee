@@ -7,32 +7,32 @@ Submodules
 peebee.models module
 --------------------
 
-.. automodule:: peebee.models
+.. automodapi:: peebee.models
    :members:
    :undoc-members:
    :show-inheritance:
    
-.. automodule:: peebee.convenience
+.. automodapi:: peebee.convenience
    :members:
    :undoc-members:
    :show-inheritance:
    
-.. automodule:: peebee.transforms
+.. automodapi:: peebee.transforms
    :members:
    :undoc-members:
    :show-inheritance:
    
-.. automodule:: peebee.glob
+.. automodapi:: peebee.glob
    :members:
    :undoc-members:
    :show-inheritance:
    
-.. automodule:: peebee.fitter
+.. automodapi:: peebee.fitter
    :members:
    :undoc-members:
    :show-inheritance:
    
-.. automodule:: peebee.sampler
+.. automodapi:: peebee.sampler
    :members:
    :undoc-members:
    :show-inheritance:
@@ -40,7 +40,7 @@ peebee.models module
 Module contents
 ---------------
 
-.. automodule:: peebee
+.. automodapi:: peebee
    :members:
    :undoc-members:
    :show-inheritance:

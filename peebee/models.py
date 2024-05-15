@@ -51,6 +51,10 @@ class Model:
 		#track whether parameters are stored as regular or log10(param)
 		self._logparams = []
 
+		#track which parameters are disabled, i.e. they become the default
+		self._disabled_params = [] #list of ints, 0 if the ith par. is enabled, 1 if disabled
+		self._disabled_param_names = [] #list of strings, for convenience
+
 	@property #shows up as self.nparams
 	def nparams(self):
 		return len(self.param_names)
@@ -81,11 +85,15 @@ class Model:
 		else:
 			params = kwargs
 
+		self._disabled_params = np.zeros(len(self.param_names))
+
 		#auto-fill any missing values (if they have defaults)
 		while len(params) < len(self.param_names):
 			for i, pname in enumerate(self.param_names):
 				if not pname in params:
 					params[pname] = self.param_defaults[i]
+					self._disabled_params[i] = 1
+					self._disabled_param_names.append(pname)
 
 		self.set_params(params, ignore_name_check=False)
 		self._logparams = [0]*self.nparams
@@ -168,6 +176,11 @@ class Model:
 				out[i] = 10**out[i]
 		return out 
 
+	#helper function to make it easier to get/assign default params
+	def get_param_default(self, param_name):
+		i = self.param_names.index(param_name)
+		return self.param_defaults[i]
+
 
 
 class CompositeModel:
@@ -191,10 +204,17 @@ class CompositeModel:
 		return out
 
 	@property #shows up as self.nparams, -> a list of ints
-	def nparams(self):
+	def nparams_list(self):
 		out = []
 		for m in self.models:
 			out.append(m.nparams)
+		return out
+
+	@property #shows up as self.nparams, -> int (sum of all component model nparams)
+	def nparams(self):
+		out = 0
+		for m in self.models:
+			out += m.nparams
 		return out
 
 	def set_params(self, params):
@@ -428,7 +448,7 @@ class OortExpansion(Model):
 		super().__init__()
 		self.name = 'Quillen Flexible'
 		self.param_names = ['alpha1', 'alpha2', 'beta', 'vcirc']
-		self.param_defaults = [None, 0., 0., 0.] #None if required param
+		self.param_defaults = [None, 0., 0., vlsr] #None if required param
 		self._vert_only = vert_only
 		self._finish_init_model(**kwargs)
 
@@ -441,9 +461,6 @@ class OortExpansion(Model):
 		#TODO: remove this later if there aren't problems
 		# if alpha2 is None:
 		# 	alpha2 = 0.
-
-		if vcirc == 0.:
-			vcirc = vlsr
 
 		R = (x**2 + y**2)**0.5
 
@@ -682,6 +699,25 @@ class SphericalFlatRC(Model):
 		az = ar*np.sin(b)
 
 		return ax, ay, az
+
+#---------------------------------------------------------------------------
+# Uniform Acceleration 
+# useful for things like globular clusters where the MW acceleration field is ~ constant
+#---------------------------------------------------------------------------
+class UniformAccel(Model):
+
+	def __init__(self, **kwargs):
+		super().__init__()
+		self.name = 'Uniform Acceleration'
+		self.param_names = ['alos']
+		self.param_defaults = [None] #None if required param
+		self._finish_init_model(**kwargs)
+
+	def accel(self, x, y, z, **kwargs): #should catch everything?
+		raise NotImplementedError('Uniform Acceleration model has no acc() method, it is meant to be used with alos().')
+
+	def alos(self, l, b, d, **kwargs): #should catch everything?
+		return np.zeros(len(l)) + self.alos
 
 #-------------------------------------------------
 # Generic Gala Potential Wrapper
