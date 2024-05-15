@@ -10,8 +10,11 @@ Welcome to peebee's documentation!
    :maxdepth: 2
    :caption: Submodules:
 
-   peebee
    models
+   convenience
+   transforms
+   fitter
+   sampler
 
 Indices and tables
 ==================
