@@ -38,3 +38,13 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 #html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+#this prevents imports from showing up in the docs
+def patch_automodapi(app):
+    """Monkey-patch the automodapi extension to exclude imported members"""
+    from sphinx_automodapi import automodsumm
+    from sphinx_automodapi.utils import find_mod_objs
+    automodsumm.find_mod_objs = lambda *args: find_mod_objs(args[0], onlylocals=True)
+
+def setup(app):
+    app.connect("builder-inited", patch_automodapi)
