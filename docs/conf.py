@@ -13,6 +13,16 @@ sys.path.insert(0, os.path.abspath('../..'))
 #for x in os.walk('../peebee'):
 #  sys.path.insert(0, x[0])
 
+#this prevents imports from showing up in the docs
+def patch_automodapi(app):
+    """Monkey-patch the automodapi extension to exclude imported members"""
+    from sphinx_automodapi import automodsumm
+    from sphinx_automodapi.utils import find_mod_objs
+    automodsumm.find_mod_objs = lambda *args: find_mod_objs(args[0], onlylocals=True)
+
+def setup(app):
+    app.connect("builder-inited", patch_automodapi)
+
 project = 'peebee'
 copyright = '2024, Tom Donlon'
 author = 'Tom Donlon'
@@ -39,12 +49,3 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
-#this prevents imports from showing up in the docs
-def patch_automodapi(app):
-    """Monkey-patch the automodapi extension to exclude imported members"""
-    from sphinx_automodapi import automodsumm
-    from sphinx_automodapi.utils import find_mod_objs
-    automodsumm.find_mod_objs = lambda *args: find_mod_objs(args[0], onlylocals=True)
-
-def setup(app):
-    app.connect("builder-inited", patch_automodapi)
