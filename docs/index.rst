@@ -8,9 +8,10 @@ Welcome to peebee's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Submodules:
 
    peebee
+   models
 
 Indices and tables
 ==================

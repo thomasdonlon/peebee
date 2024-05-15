@@ -1,21 +1,7 @@
-peebee package
-==============
-
-Submodules
-----------
-
-.. automodapi:: peebee
-   :members:
-   
---------------------
-
-.. automodsumm::
-   :toctree: modules
-   
---------------------
 
 .. automodapi:: peebee.models
    :members:
+   :no-inheritance-diagram:
    
 .. automodapi:: peebee.convenience
    :members:
