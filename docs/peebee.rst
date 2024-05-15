@@ -4,6 +4,11 @@ peebee package
 Submodules
 ----------
 
+.. automodapi:: peebee
+   :members:
+   
+--------------------
+
 .. automodsumm::
    :toctree: modules
    
@@ -25,9 +30,6 @@ Submodules
    :members:
    
 .. automodapi:: peebee.sampler
-   :members:
-
-.. automodapi:: peebee
    :members:
    
 .. automodsumm::
