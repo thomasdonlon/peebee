@@ -42,7 +42,17 @@ mathjax3_config = {
   }
 }
 
+#controls the sidebar
+#html_sidebars = {
+#   '**': ['text', 'globaltoc.html', 'searchbox.html'],
+#}
 
+#some options for the html theme
+html_theme_options = {
+    'fixed_sidebar': True,
+    'description': "A python package merging Galactic dynamics with direct acceleration measurements",
+    'page_width': '80%',
+}
 
 project = 'peebee'
 copyright = '2024, Tom Donlon'
@@ -56,7 +66,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
               'sphinx_automodapi.automodapi',
               'sphinx_math_dollar',
-              'sphinx.ext.imgmath']
+              'sphinx.ext.imgmath',
+              'sphinx_toolbox.sidebar_links']
 numpydoc_show_class_members = False
               
 #removed sphinx.ext.imgmath
