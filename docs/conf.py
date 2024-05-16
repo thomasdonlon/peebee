@@ -33,11 +33,11 @@ release = '0.0.8' #TODO: read this from a file
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
-              'sphinx.ext.imgmath',
+              'sphinx_math_dollar', 
+              'sphinx.ext.mathjax',
               'sphinx_automodapi.automodapi']
 numpydoc_show_class_members = False
               
-#removed sphinx_math_dollar
 #removed sphinx.ext.imgmath
 
 templates_path = ['_templates']
