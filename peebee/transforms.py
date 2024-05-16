@@ -3,6 +3,7 @@ Text here for Sphinx (I think)
 """
 
 import numpy as np
+from functools import wraps 
 from .glob import fix_arrays, r_sun
 
 #stolen from mwahpy
@@ -68,6 +69,7 @@ def convert_to_frame(fr):
 
 	def internal_decorator(func): #this is silly but required I think
 
+		@wraps(func)
 		def wrapper(*args, **kwargs):
 
 			#check whether frame kwarg was passed into func

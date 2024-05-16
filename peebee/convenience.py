@@ -3,6 +3,7 @@ Text here for Sphinx (I think)
 """
 
 import numpy as np
+from functools import wraps 
 from .glob import fix_arrays, r_sun
 from .transforms import convert_to_frame
 
@@ -15,7 +16,10 @@ from .transforms import convert_to_frame
 #this generically allows functions to take in either arrays or single values
 # and turns everything into (numpy) arrays behind the scenes
 def fix_arrays(func):
+    """test autodoc"""
+    @wraps(func)
     def wrapper(*args, **kwargs):
+        self.__doc__ = args[0].__doc__
 
         use_array = True
 
@@ -99,8 +103,7 @@ def alos_obs(*args, frame='gal'):
 	$a_\\mathrm{los}$ is computed as $$\\frac{a_\\mathrm{los} P_b}{c} = \\dot{P_b}^\\mathrm{Obs} - \\dot{P_b}^\\mathrm{Shk} - \\dot{P_b}^\\mathrm{GR} $$
 	where $\\dot{P_b}^\\mathrm{GR} = 0$ if mp, mc, and e are not provided. 
 
-	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). 
-	Toggle between these options with the 'frame' flag.
+	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
 	:pb: binary orbital period of the pulsar (s)
 	:pbdot_obs: the observed time derivative of the binary orbital period (s/s)
 	:mu: the observed proper motion (mas/yr)
@@ -109,6 +112,7 @@ def alos_obs(*args, frame='gal'):
 	:e: (optional) orbital eccentricity of the binary
 	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d),
 	'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	
 	"""
 
 	if len(args) == 6:
@@ -207,6 +211,7 @@ def dm_over_bary_alos(l, b, d, model_bary, model_dm, frame='gal'):
 
 #I can never be bothered to write out a pandas df or whatever so I wrote this instead
 def write_to_csv(path, *args, titles=None):
+	"""text autodoc3"""
 
 	if len(args) == 0: 
 		raise Exception("Have to provide at least one array-like in addition to the file path")
