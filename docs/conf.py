@@ -23,6 +23,27 @@ def patch_automodapi(app):
 def setup(app):
     app.connect("builder-inited", patch_automodapi)
 
+#this fixes math dollar not working in autosum tables
+from docutils.nodes import FixedTextElement, literal,math
+from docutils.nodes import  comment, doctest_block, image, literal_block, math_block, paragraph, pending, raw, rubric, substitution_definition, target
+math_dollar_node_blacklist = (literal,math,doctest_block, image, literal_block,  math_block,  pending,  raw,rubric, substitution_definition,target)
+
+mathjax_config = {
+    'tex2jax': {
+        'inlineMath': [ ["\\(","\\)"] ],
+        'displayMath': [["\\[","\\]"] ],
+    },
+}
+
+mathjax3_config = {
+  "tex": {
+    "inlineMath": [['\\(', '\\)']],
+    "displayMath": [["\\[", "\\]"]],
+  }
+}
+
+
+
 project = 'peebee'
 copyright = '2024, Tom Donlon'
 author = 'Tom Donlon'
@@ -33,9 +54,9 @@ release = '0.0.8' #TODO: read this from a file
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
-              'sphinx_math_dollar', 
-              'sphinx.ext.mathjax',
-              'sphinx_automodapi.automodapi']
+              'sphinx_automodapi.automodapi',
+              'sphinx_math_dollar',
+              'sphinx.ext.imgmath']
 numpydoc_show_class_members = False
               
 #removed sphinx.ext.imgmath

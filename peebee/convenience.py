@@ -100,8 +100,11 @@ def alos_obs(*args, frame='gal'):
 	"""
 	Compute $a_\\mathrm{los}$, the line-of-sight acceleration of a pulsar given its observed properties. 
 	Automatically determines whether to use GR if the number of inputs is 6 (no GR) or 9 (with GR). 
-	$a_\\mathrm{los}$ is computed as $$\\frac{a_\\mathrm{los} P_b}{c} = \\dot{P_b}^\\mathrm{Obs} - \\dot{P_b}^\\mathrm{Shk} - \\dot{P_b}^\\mathrm{GR} $$
-	where $\\dot{P_b}^\\mathrm{GR} = 0$ if mp, mc, and e are not provided. 
+	$a_\\mathrm{los}$ is computed as 
+	$$ 
+	\\frac{a _\\mathrm{los} P_b}{c} = \\dot{P_b}^\\mathrm{Obs} - \\dot{P_b}^\\mathrm{Shk} - \\dot{P_b}^\\mathrm{GR} 
+	$$
+	where $\\dot{P_b}^\\mathrm{GR} = 0$ is assumed if mp, mc, and e are not provided. 
 
 	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
 	:pb: binary orbital period of the pulsar (s)
@@ -110,8 +113,7 @@ def alos_obs(*args, frame='gal'):
 	:mp: (optional) the mass of the pulsar (M$_\\odot$)
 	:mc: (optional) the mass of the companion (M$_\\odot$)
 	:e: (optional) orbital eccentricity of the binary
-	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d),
-	'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
 	
 	"""
 
@@ -151,13 +153,11 @@ def pbdot_intr(l, b, d, pb, pbdot_obs, mu, frame='gal'):
 	Compute $\\dot{P}_b^\\mathrm{Intr}$, the binary orbital period derivative of the pulsar not due to the Shklovskii Effect.
 	This can be interpreted as the observed decay of the binary orbital period due to emission of gravitational waves. 
 
-	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). 
-	Toggle between these options with the 'frame' flag.
+	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
 	:pb: binary orbital period of the pulsar (s)
 	:pbdot_obs: the observed time derivative of the binary orbital period (s/s)
 	:mu: the observed proper motion (mas/yr)
-	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d),
-	'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
 	"""
 
 	pbdot_shk = pdot_shk(pb, mu, d)
@@ -171,16 +171,14 @@ def intr_over_gr(l, b, d, pb, pbdot_obs, mu, mp, mc, e, frame='gal'):
 	Compute $\\dot{P}_b^\\mathrm{Intr}/\\dot{P}_b^\\mathrm{GR}$, the ratio of the observed orbital decay of the binary to the theoretical orbtial decay due to
 	the emission of gravitational waves. If the observation is consistent with general relativity, this should be equal to 1. 
 
-	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). 
-	Toggle between these options with the 'frame' flag.
+	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
 	:pb: binary orbital period of the pulsar (s)
 	:pbdot_obs: the observed time derivative of the binary orbital period (s/s)
 	:mu: the observed proper motion (mas/yr)
 	:mp: (optional) the mass of the pulsar (M$_\\odot$)
 	:mc: (optional) the mass of the companion (M$_\\odot$)
 	:e: (optional) orbital eccentricity of the binary
-	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d),
-	'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
 	"""
 
 	pbdot_shk = pdot_shk(pb, mu, d)
@@ -193,15 +191,14 @@ def intr_over_gr(l, b, d, pb, pbdot_obs, mu, mp, mc, e, frame='gal'):
 @convert_to_frame('gal')
 def dm_over_bary_alos(l, b, d, model_bary, model_dm, frame='gal'):
 	"""
-	Compute $|a_\\mathrm{DM}|/|a_\\mathrm{bary}|$, the ratio of the (magnitudes of the) relative contributions of the dark matter and baryonic components
-	of the Galaxy at a given point. Useful for estimating ability to constrain dark matter information from measurements.
+	Compute ${ | a _\\mathrm{DM} | / | a _\\mathrm{bary} | }$, the ratio of the (magnitudes of the) relative contributions of the dark matter and baryonic components
+	of the Galaxy to the acceleration at a given point. Useful for estimating the ability to constrain dark matter information from measurements.
 
-	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). 
-	Toggle between these options with the 'frame' flag.
+	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
 	:model_bary: peebee.model for the baryonic component of the Galactic potential (i.e. disk + bulge)
 	:model_dm: peebee.model for the dark component of the Galactic potential (i.e. halo)
-	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d),
-	'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+
 	"""
 
 	alos_bary = model_bary.alos(l, b, d)
