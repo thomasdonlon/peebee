@@ -1,4 +1,6 @@
-v0.0.10
+v1.0.0
+ - put out public repo release on Pypi
+ - changed a bunch of readthedocs and documentation stuff
  - changed the way that default/disabled parameters work to fix fitter.fit_model()
  - added model.get_param_default() method for some 
  - fitter catches singular matrices in the hessian so you can debug
