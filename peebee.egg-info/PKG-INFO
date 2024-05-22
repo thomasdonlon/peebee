@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: peebee
-Version: 0.0.3
+Version: 1.0.0
 Summary: A python package for the intersection of pulsar accelerations and Galactic structure
 Home-page: https://github.com/thomasdonlon/peebee
 Author: Tom Donlon
@@ -16,7 +16,6 @@ Requires-Dist: matplotlib
 Requires-Dist: uncertainties
 Requires-Dist: astropy
 Requires-Dist: scipy
-Requires-Dist: pandas
 Requires-Dist: gala
 Requires-Dist: galpy
 

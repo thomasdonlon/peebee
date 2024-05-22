@@ -3,6 +3,5 @@ matplotlib
 uncertainties
 astropy
 scipy
-pandas
 gala
 galpy

@@ -1,6 +1,5 @@
 """
-This submodule contains various functions and routines that either make things easier elsewhere in the peebee code,
-or are helpful functions to avoid doing simple tasks over and over. 
+Text here for Sphinx (I think)
 """
 
 import numpy as np
@@ -17,7 +16,7 @@ from .transforms import convert_to_frame
 #this generically allows functions to take in either arrays or single values
 # and turns everything into (numpy) arrays behind the scenes
 def fix_arrays(func):
-    """:meta private:"""
+    """test autodoc"""
     @wraps(func)
     def wrapper(*args, **kwargs):
         self.__doc__ = args[0].__doc__
@@ -154,18 +153,11 @@ def pbdot_intr(l, b, d, pb, pbdot_obs, mu, frame='gal'):
 	Compute $\\dot{P}_b^\\mathrm{Intr}$, the binary orbital period derivative of the pulsar not due to the Shklovskii Effect.
 	This can be interpreted as the observed decay of the binary orbital period due to emission of gravitational waves. 
 
-	:param coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
-	:type coord1-3: array-like (float,)
-	:param pb: binary orbital period of the pulsar (s)
-	:type pb: array-like (float,)
-	:param pbdot_obs: the observed time derivative of the binary orbital period (s/s)
-	:type pbdot_obs: array-like (float,)
-	:param mu: the observed proper motion (mas/yr)
-	:type mu: array-like (float,)
-	:param frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
-	:type frame: str
-	:return: Array containing $\\dot{P}_b^\\mathrm{Intr}$ for each input
-	:rtype: array-like (float,)
+	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
+	:pb: binary orbital period of the pulsar (s)
+	:pbdot_obs: the observed time derivative of the binary orbital period (s/s)
+	:mu: the observed proper motion (mas/yr)
+	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
 	"""
 
 	pbdot_shk = pdot_shk(pb, mu, d)

@@ -1,3 +1,8 @@
+v1.0.1
+ - edited README.md
+ - made changes to docstrings to improve readthedocs
+ - added model.atan() and model.a_gal_sph() functions to calculate proper accelerations
+
 v1.0.0
  - put out public repo release on Pypi
  - changed a bunch of readthedocs and documentation stuff

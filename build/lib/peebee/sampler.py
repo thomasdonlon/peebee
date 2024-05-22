@@ -1,5 +1,6 @@
 """
-This submodule contains a few sampling routines for generating accelerations from populations of objects, which can be used for random bootstrapping or unit tests.
+Text here for Sphinx (I think)
+#Written by Tom Donlon, 2024, UAH
 """
 
 import numpy as np

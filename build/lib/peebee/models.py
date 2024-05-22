@@ -1,8 +1,4 @@
-"""
-Peebee contains many different potential models, which can be used to either generate acceleration data, or can be fit to existing acceleration data. 
-A variety of models are incorporated here, and are added as they become relevant. If you do not see a specific potential you are interested in, you can 
-reach out and ask that it be added to a future version of peebee.
-"""
+#Written by Tom Donlon, 2023-2024, UAH
 
 #TODO: dict names can collide when adding two models if param names are identical
 #TODO: implement astropy units in a way that ensures proper units are always output
@@ -125,22 +121,14 @@ class Model:
 	@fix_arrays
 	@convert_to_frame('gal')
 	def alos(self, l, b, d, frame='gal', d_err=None, sun_pos=(r_sun, 0., 0.)): #includes solar accel!
-		"""
-		Compute the line-of-sight component of the acceleration. This is acceleration relative to the Sun. 
-
-		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
-		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
-		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
-
-		"""
 
 		#heliocentric, can't use frame='cart' because that's Galactocentric
 		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
 		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
 		z = d*np.sin(b*np.pi/180)
 
-		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
-		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
+		alossun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
+		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - alossun  #subtract off solar accel
 
 		los_vecs = (np.array([x, y, z]/d).T)
 		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
@@ -157,77 +145,6 @@ class Model:
 
 		else:
 			return los_accels
-
-	@fix_arrays
-	@convert_to_frame('gal')
-	def atan(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.)): #includes solar accel! Adapted from code by Lorenzo Addy
-		"""
-		Compute the magnitude of the tangential component of the acceleration, i.e. the "proper" acceleration. This is acceleration relative to the Sun, perpendicular to our line of sight. 
-
-		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
-		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
-		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
-
-		"""
-
-		#heliocentric, can't use frame='cart' because that's Galactocentric
-		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
-		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
-		z = d*np.sin(b*np.pi/180)
-
-		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
-		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
-
-		los_vecs = (np.array([x, y, z]/d).T)
-		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
-			los_accels = np.sum(accels*los_vecs, axis=1)
-		else:
-			los_accels = np.sum(accels*los_vecs)
-
-		tan_accels = np.sum((accels - los_accels*los_vecs)**2, axis=1)**0.5 #magnitude of tangential accels
-
-		return tan_accels
-
-	@fix_arrays
-	@convert_to_frame('gal')
-	def a_gal_sph(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.)): #includes solar accel! Adapted from code by Lorenzo Addy
-		"""
-		Compute the 3-dimensional heliocentric acceleration. This is acceleration relative to the Sun.
-
-		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
-		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
-		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
-		:return: $a _ \\mathrm{los}$ (acceleration along our line of sight); $a _ \\mathrm{l}$ (acceleration in the Galactic longitude direction); $a _ \\mathrm{b}$ (acceleration in the Galactic latitude direction), (kpc/s$^2$)
-		:rtype: array-like (float,); array-like (float,); array-like (float,)
-		"""
-
-		#heliocentric, can't use frame='cart' because that's Galactocentric
-		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
-		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
-		z = d*np.sin(b*np.pi/180)
-
-		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
-		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
-
-		los_vecs = (np.array([x, y, z]/d).T)
-		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
-			alos = np.sum(accels*los_vecs, axis=1)
-		else:
-			alos = np.sum(accels*los_vecs)
-
-		tan_accels = accels - los_accels*los_vecs
-		tan_accels_mag = np.sum(tan_accels**2, axis=1)**0.5
-
-		#note that this is horrible because it's left handed (x -> -x')
-		#can be derived from the general spherical rotation matrix where phi -> l and theta -> 90 - b, i.e. sin(theta) = cos(b) and cos(theta) = sin(b)
-		rotmat = np.array([[-np.cos(b)*np.cos(l), np.cos(b)*np.sin(l),  np.sin(b)],
-			               [-np.sin(b)*np.cos(l), np.sin(b)*np.sin(l), -np.cos(b)],
-			               [           np.sin(l),           np.cos(l),          0]])
-		rhat, lhat, bhat = np.matmul(rotmat, los_vecs)
-		atan_l = tan_accels_mag*np.sum(accels*lhat, axis=1)
-		atan_b = tan_accels_mag*np.sum(accels*bhat, axis=1)
-
-	    return alos, atan_l, atan_b
 
 	#model1 + model2 returns a new CompositeModel
 	def __add__(self, model2):

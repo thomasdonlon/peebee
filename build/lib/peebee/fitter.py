@@ -1,8 +1,3 @@
-"""
-This submodule is built around an optimizer that takes in accelerations and their 3-dimensional positions, and can optimize a variety of potential models to that information. 
-IT can also be used to evaluate how good of a fit a given potential is when applied to a set of data. 
-"""
-
 import numpy as np
 from scipy.optimize import minimize, differential_evolution
 from uncertainties import ufloat
