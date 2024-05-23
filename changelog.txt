@@ -2,6 +2,7 @@ v1.0.1
  - edited README.md
  - made changes to docstrings to improve readthedocs
  - added model.atan() and model.a_gal_sph() functions to calculate proper accelerations
+ - added convenience.dot and convenience.mags helper functions
 
 v1.0.0
  - put out public repo release on Pypi

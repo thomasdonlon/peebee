@@ -242,3 +242,12 @@ def write_to_csv(path, *args, titles=None):
 			out_str += '\n'
 			f.write(out_str)
 
+#2 functions below added at the request of Lorenzo Addy, probably identical to his code
+
+#helper function for getting array-wise magnitudes rather than writing things out
+def mags(arr):
+	return np.sum(arr**2, axis=-1)**0.5
+
+#helper function for getting array-wise dot products
+def dot(arr1, arr2):  #vecsi are Nx3 arrays
+    return np.sum(arr1*arr2, axis=-1)

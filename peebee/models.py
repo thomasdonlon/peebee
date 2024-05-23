@@ -15,6 +15,7 @@ from galpy.potential import HernquistPotential, evaluatezforces, evaluateRforces
 from gala.potential.potential import MiyamotoNagaiPotential
 from gala.units import UnitSystem
 
+from .convenience import mags
 from .transforms import convert_to_frame
 from .glob import fix_arrays, r_sun
 
@@ -157,13 +158,14 @@ class Model:
 
 	@fix_arrays
 	@convert_to_frame('gal')
-	def atan(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.)): #includes solar accel! Adapted from code by Lorenzo Addy
+	def atan(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.), angular=True): #includes solar accel! Adapted from code by Lorenzo Addy
 		"""
 		Compute the magnitude of the tangential component of the acceleration, i.e. the "proper" acceleration. This is acceleration relative to the Sun, perpendicular to our line of sight. 
 
 		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
 		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
 		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
+		:angular: [optional, default value = True] Output is an angular acceleration if True, or a linear acceleration if False.
 
 		"""
 
@@ -180,11 +182,14 @@ class Model:
 
 		tan_accels = np.sum((accels - los_accels*los_vecs)**2, axis=1)**0.5 #magnitude of tangential accels
 
+		if angular: #kpc/s^2 -> radians/s^2
+			tan_accels /=d 
+
 		return tan_accels
 
 	@fix_arrays
 	@convert_to_frame('gal')
-	def a_gal_sph(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.)): #includes solar accel! Adapted from code by Lorenzo Addy
+	def a_gal_sph(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.), angular=True): #includes solar accel! Adapted from code by Lorenzo Addy
 		"""
 		Compute the 3-dimensional heliocentric acceleration. This is acceleration relative to the Sun.
 
@@ -206,17 +211,29 @@ class Model:
 		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
 		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
 
-		#note that this is horrible because it's left handed (x -> -x')
-		#can be derived from the cartesian to spherical COB matrix where phi -> l and theta -> 90 - b, i.e. sin(theta) = cos(b) and cos(theta) = sin(b)
-		rotmat = np.array([[-np.cos(b)*np.cos(l), np.cos(b)*np.sin(l),  np.sin(b)],
-			               [-np.sin(b)*np.cos(l), np.sin(b)*np.sin(l), -np.cos(b)],
-			               [           np.sin(l),           np.cos(l),          0]])
-		rhat, lhat, bhat = np.matmul(rotmat, los_vecs)
-		alos = np.dot(accels*rhat) #double check that this does the correct matrix math
-		atan_l = np.dot(accels*lhat)
-		atan_b = np.dot(accels*bhat)
+		rhats = (np.array([x, y, z]/d).T)
+		rhats = np.nan_to_num(rhats, nan=0.0, posinf=0.0, neginf=0.0) #fixes any divide by 0
+		alos = np.dot(accels*rhats)
 
-		return alos, atan_l, atan_b
+		atan_vec = accels - alos*rhats
+
+		bhats = np.array([np.cos(l)*np.sin(b), -np.sin(l)*np.sin(b), np.cos(b)])
+	    lhats = np.array([np.sin(l), np.cos(l), 0])
+
+	    atan_b = np.dot(atan_vec, bhats)
+	    atan_l = np.dot(atan_vec, lhats)
+
+	    #fix polar axis
+	    polar_indx = (b == 90.) | (b == -90.)
+	    np.put(atan_l, polar_indx, 0.)
+	    np.put(atan_b, (b == 90.), -mags(atan_vec[(b == 90.)]))
+	    np.put(atan_b, (b == -90.), mags(atan_vec[(b == -90.)]))
+
+		if angular: #kpc/s^2 -> radians/s^2
+			atan_b /=d 
+			atan_l /= d
+
+	    return alos, atan_l, atan_b
 
 	#model1 + model2 returns a new CompositeModel
 	def __add__(self, model2):
