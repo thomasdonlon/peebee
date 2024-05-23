@@ -143,10 +143,7 @@ class Model:
 		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
 
 		los_vecs = (np.array([x, y, z]/d).T)
-		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
-			los_accels = np.sum(accels*los_vecs, axis=1)
-		else:
-			los_accels = np.sum(accels*los_vecs)
+		los_accels = np.sum(accels*los_vecs, axis=-1) #works for arrays and floats
 
 		if d_err is not None:
 
@@ -179,10 +176,7 @@ class Model:
 		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
 
 		los_vecs = (np.array([x, y, z]/d).T)
-		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
-			los_accels = np.sum(accels*los_vecs, axis=1)
-		else:
-			los_accels = np.sum(accels*los_vecs)
+		los_accels = np.sum(accels*los_vecs, axis=-1) #works for arrays and floats
 
 		tan_accels = np.sum((accels - los_accels*los_vecs)**2, axis=1)**0.5 #magnitude of tangential accels
 
@@ -201,33 +195,28 @@ class Model:
 		:rtype: array-like (float,); array-like (float,); array-like (float,)
 		"""
 
+		l *= np.pi/180
+		b *= np.pi/180
+
 		#heliocentric, can't use frame='cart' because that's Galactocentric
-		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
-		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
-		z = d*np.sin(b*np.pi/180)
+		x = -d*np.cos(l)*np.cos(b)
+		y = d*np.sin(l)*np.cos(b)
+		z = d*np.sin(b)
 
 		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
 		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
 
-		los_vecs = (np.array([x, y, z]/d).T)
-		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
-			alos = np.sum(accels*los_vecs, axis=1)
-		else:
-			alos = np.sum(accels*los_vecs)
-
-		tan_accels = accels - los_accels*los_vecs
-		tan_accels_mag = np.sum(tan_accels**2, axis=1)**0.5
-
 		#note that this is horrible because it's left handed (x -> -x')
-		#can be derived from the general spherical rotation matrix where phi -> l and theta -> 90 - b, i.e. sin(theta) = cos(b) and cos(theta) = sin(b)
+		#can be derived from the cartesian to spherical COB matrix where phi -> l and theta -> 90 - b, i.e. sin(theta) = cos(b) and cos(theta) = sin(b)
 		rotmat = np.array([[-np.cos(b)*np.cos(l), np.cos(b)*np.sin(l),  np.sin(b)],
 			               [-np.sin(b)*np.cos(l), np.sin(b)*np.sin(l), -np.cos(b)],
 			               [           np.sin(l),           np.cos(l),          0]])
 		rhat, lhat, bhat = np.matmul(rotmat, los_vecs)
-		atan_l = tan_accels_mag*np.sum(accels*lhat, axis=1)
-		atan_b = tan_accels_mag*np.sum(accels*bhat, axis=1)
+		alos = np.dot(accels*rhat) #double check that this does the correct matrix math
+		atan_l = np.dot(accels*lhat)
+		atan_b = np.dot(accels*bhat)
 
-	    return alos, atan_l, atan_b
+		return alos, atan_l, atan_b
 
 	#model1 + model2 returns a new CompositeModel
 	def __add__(self, model2):
