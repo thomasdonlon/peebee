@@ -57,7 +57,7 @@ html_theme_options = {
 project = 'peebee'
 copyright = '2024, Tom Donlon'
 author = 'Tom Donlon'
-release = '1.0.0' #TODO: read this from a file
+release = '1.1.0' #TODO: read this from a file
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

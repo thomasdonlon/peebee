@@ -1,8 +1,14 @@
-v1.0.1
+v1.1.0
  - edited README.md
  - made changes to docstrings to improve readthedocs
  - added model.atan() and model.a_gal_sph() functions to calculate proper accelerations
  - added convenience.dot and convenience.mags helper functions
+ - added CoxGomezSpiralArm potential to Models
+ - changed UniformAccel Model to UniformAlos
+ - added Uniform3DAccel Model
+ - fixed bug in models.a_gal_sph() by changing np.put -> np.place, which can take conditions instead of indices
+ - fixed bug in fit chi^2 statistic calculation, is now correct
+ - fixed bug in fix_arrays() wrapper that caused things to break when not running the docs generator
 
 v1.0.0
  - put out public repo release on Pypi

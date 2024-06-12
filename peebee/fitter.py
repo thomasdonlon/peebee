@@ -188,7 +188,7 @@ def fit_model(l, b, d, alos, alos_err, model, bounds, frame='gal', mode='gd', sc
 		scale = kwargs['scale']
 
 	params = result.x
-	red_chi2 = result.fun/(len(alos) - len(params))
+	red_chi2 = result.fun/(len(alos) - len(params) - 1)
 	aic = 2*len(params) + result.fun
 	if print_out:
 		rss(params, model, data, scale, print_out=print_out)

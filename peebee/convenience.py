@@ -20,7 +20,7 @@ def fix_arrays(func):
     """:meta private:"""
     @wraps(func)
     def wrapper(*args, **kwargs):
-        self.__doc__ = args[0].__doc__
+        #self.__doc__ = args[0].__doc__ #I removed this because it was breaking things, hopefully @wraps fixes the documentation?
 
         use_array = True
 
@@ -216,7 +216,7 @@ def dm_over_bary_alos(l, b, d, model_bary, model_dm, frame='gal'):
 
 #I can never be bothered to write out a pandas df or whatever so I wrote this instead
 def write_to_csv(path, *args, titles=None):
-	"""text autodoc3"""
+	"""text autodoc"""
 
 	if len(args) == 0: 
 		raise Exception("Have to provide at least one array-like in addition to the file path")
