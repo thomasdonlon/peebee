@@ -1,5 +1,6 @@
 """
-Text here for Sphinx (I think)
+This submodule contains various functions and routines that either make things easier elsewhere in the peebee code,
+or are helpful functions to avoid doing simple tasks over and over. 
 """
 
 import numpy as np
@@ -16,10 +17,10 @@ from .transforms import convert_to_frame
 #this generically allows functions to take in either arrays or single values
 # and turns everything into (numpy) arrays behind the scenes
 def fix_arrays(func):
-    """test autodoc"""
+    """:meta private:"""
     @wraps(func)
     def wrapper(*args, **kwargs):
-        self.__doc__ = args[0].__doc__
+        #self.__doc__ = args[0].__doc__ #I removed this because it was breaking things, hopefully @wraps fixes the documentation?
 
         use_array = True
 
@@ -153,11 +154,18 @@ def pbdot_intr(l, b, d, pb, pbdot_obs, mu, frame='gal'):
 	Compute $\\dot{P}_b^\\mathrm{Intr}$, the binary orbital period derivative of the pulsar not due to the Shklovskii Effect.
 	This can be interpreted as the observed decay of the binary orbital period due to emission of gravitational waves. 
 
-	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
-	:pb: binary orbital period of the pulsar (s)
-	:pbdot_obs: the observed time derivative of the binary orbital period (s/s)
-	:mu: the observed proper motion (mas/yr)
-	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	:param coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
+	:type coord1-3: array-like (float,)
+	:param pb: binary orbital period of the pulsar (s)
+	:type pb: array-like (float,)
+	:param pbdot_obs: the observed time derivative of the binary orbital period (s/s)
+	:type pbdot_obs: array-like (float,)
+	:param mu: the observed proper motion (mas/yr)
+	:type mu: array-like (float,)
+	:param frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	:type frame: str
+	:return: Array containing $\\dot{P}_b^\\mathrm{Intr}$ for each input
+	:rtype: array-like (float,)
 	"""
 
 	pbdot_shk = pdot_shk(pb, mu, d)
@@ -208,7 +216,7 @@ def dm_over_bary_alos(l, b, d, model_bary, model_dm, frame='gal'):
 
 #I can never be bothered to write out a pandas df or whatever so I wrote this instead
 def write_to_csv(path, *args, titles=None):
-	"""text autodoc3"""
+	"""text autodoc"""
 
 	if len(args) == 0: 
 		raise Exception("Have to provide at least one array-like in addition to the file path")
@@ -234,3 +242,12 @@ def write_to_csv(path, *args, titles=None):
 			out_str += '\n'
 			f.write(out_str)
 
+#2 functions below added at the request of Lorenzo Addy, probably identical to his code
+
+#helper function for getting array-wise magnitudes rather than writing things out
+def mags(arr):
+	return np.sum(arr**2, axis=-1)**0.5
+
+#helper function for getting array-wise dot products
+def dot(arr1, arr2):  #vecsi are Nx3 arrays
+    return np.sum(arr1*arr2, axis=-1)

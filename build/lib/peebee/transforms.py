@@ -1,5 +1,5 @@
 """
-Text here for Sphinx (I think)
+This submodule is home to coordinate transformations that help improve the general user experience. 
 """
 
 import numpy as np
@@ -15,6 +15,7 @@ def gal_to_cart(l, b, r, left_handed=True, rad=False, sun_pos=(r_sun, 0., 0.)):
 	:l: Galactic longitude (deg)
 	:b: Galactic latitude (deg)
 	:d: Heliocentric distance (kpc)
+
 	"""
 
 	if not rad:
@@ -40,6 +41,7 @@ def cart_to_gal(x, y, z, left_handed=True, sun_pos=(r_sun, 0., 0.)):
 	:l: Galactic longitude (deg)
 	:b: Galactic latitude (deg)
 	:d: Heliocentric distance (kpc)
+
 	"""
 
 	if left_handed:
@@ -65,6 +67,7 @@ def cart_to_gal(x, y, z, left_handed=True, sun_pos=(r_sun, 0., 0.)):
 #allows the first 3 inputs to be in different coordinate systems
 # based on frame = 'cart' or = 'gal'
 def convert_to_frame(fr):
+	""":meta private:"""
 	#fr: the frame ('cart' or 'gal' are currently supported)
 
 	def internal_decorator(func): #this is silly but required I think

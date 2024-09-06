@@ -1,3 +1,8 @@
+"""
+This submodule is built around an optimizer that takes in accelerations and their 3-dimensional positions, and can optimize a variety of potential models to that information. 
+IT can also be used to evaluate how good of a fit a given potential is when applied to a set of data. 
+"""
+
 import numpy as np
 from scipy.optimize import minimize, differential_evolution
 from uncertainties import ufloat
@@ -183,7 +188,7 @@ def fit_model(l, b, d, alos, alos_err, model, bounds, frame='gal', mode='gd', sc
 		scale = kwargs['scale']
 
 	params = result.x
-	red_chi2 = result.fun/(len(alos) - len(params))
+	red_chi2 = result.fun/(len(alos) - len(params) - 1)
 	aic = 2*len(params) + result.fun
 	if print_out:
 		rss(params, model, data, scale, print_out=print_out)

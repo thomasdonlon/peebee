@@ -1,3 +1,12 @@
+v1.2.0
+ - model params set to None are now correctly disabled on init
+ - fixed bug in distance calculation for convenience.pdot_shk()
+ - model keyword args can now be passed into, for example, galpy potentials through model.alos([...], phi=my_phi) etc.
+ - icrs to gal, cart conversion using frame kwarg now works correctly
+ - added support for galpy potentials that cannot take arrays as inputs
+ - added RadialDensityOscillation model
+ - added noise models to the optimizer
+
 v1.1.0
  - edited README.md
  - made changes to docstrings to improve readthedocs

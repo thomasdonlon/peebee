@@ -1,4 +1,8 @@
-#Written by Tom Donlon, 2023-2024, UAH
+"""
+Peebee contains many different potential models, which can be used to either generate acceleration data, or can be fit to existing acceleration data. 
+A variety of models are incorporated here, and are added as they become relevant. If you do not see a specific potential you are interested in, you can 
+reach out and ask that it be added to a future version of peebee.
+"""
 
 #TODO: dict names can collide when adding two models if param names are identical
 #TODO: implement astropy units in a way that ensures proper units are always output
@@ -11,6 +15,7 @@ from galpy.potential import HernquistPotential, evaluatezforces, evaluateRforces
 from gala.potential.potential import MiyamotoNagaiPotential
 from gala.units import UnitSystem
 
+from .convenience import mags
 from .transforms import convert_to_frame
 from .glob import fix_arrays, r_sun
 
@@ -121,20 +126,25 @@ class Model:
 	@fix_arrays
 	@convert_to_frame('gal')
 	def alos(self, l, b, d, frame='gal', d_err=None, sun_pos=(r_sun, 0., 0.)): #includes solar accel!
+		"""
+		Compute the line-of-sight component of the acceleration. This is acceleration relative to the Sun. 
+
+		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
+		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
+
+		"""
 
 		#heliocentric, can't use frame='cart' because that's Galactocentric
 		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
 		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
 		z = d*np.sin(b*np.pi/180)
 
-		alossun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
-		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - alossun  #subtract off solar accel
+		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
+		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
 
 		los_vecs = (np.array([x, y, z]/d).T)
-		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
-			los_accels = np.sum(accels*los_vecs, axis=1)
-		else:
-			los_accels = np.sum(accels*los_vecs)
+		los_accels = np.sum(accels*los_vecs, axis=-1) #works for arrays and floats
 
 		if d_err is not None:
 
@@ -145,6 +155,85 @@ class Model:
 
 		else:
 			return los_accels
+
+	@fix_arrays
+	@convert_to_frame('gal')
+	def atan(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.), angular=True): #includes solar accel! Adapted from code by Lorenzo Addy
+		"""
+		Compute the magnitude of the tangential component of the acceleration, i.e. the "proper" acceleration. This is acceleration relative to the Sun, perpendicular to our line of sight. 
+
+		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
+		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
+		:angular: [optional, default value = True] Output is an angular acceleration if True, or a linear acceleration if False.
+
+		"""
+
+		#heliocentric, can't use frame='cart' because that's Galactocentric
+		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
+		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
+		z = d*np.sin(b*np.pi/180)
+
+		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
+		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
+
+		los_vecs = (np.array([x, y, z]/d).T)
+		los_accels = np.sum(accels*los_vecs, axis=-1) #works for arrays and floats
+
+		tan_accels = np.sum((accels - los_accels*los_vecs)**2, axis=1)**0.5 #magnitude of tangential accels
+
+		if angular: #kpc/s^2 -> radians/s^2
+			tan_accels /= d #TODO: not sure this is correct because it doesn't include cos(b) for one component
+
+		return tan_accels
+
+	@fix_arrays
+	@convert_to_frame('gal')
+	def a_gal_sph(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.), angular=True): #includes solar accel! Adapted from code by Lorenzo Addy
+		"""
+		Compute the 3-dimensional heliocentric acceleration. This is acceleration relative to the Sun.
+
+		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
+		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
+		:return: $a _ \\mathrm{los}$ (acceleration along our line of sight); $a _ \\mathrm{l}$ (acceleration in the Galactic longitude direction); $a _ \\mathrm{b}$ (acceleration in the Galactic latitude direction), (kpc/s$^2$)
+		:rtype: array-like (float,); array-like (float,); array-like (float,)
+		"""
+
+		l *= np.pi/180
+		b *= np.pi/180
+
+		#heliocentric, can't use frame='cart' because that's Galactocentric
+		x = -d*np.cos(l)*np.cos(b)
+		y = d*np.sin(l)*np.cos(b)
+		z = d*np.sin(b)
+
+		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
+		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
+
+		rhats = (np.array([x, y, z]/d).T)
+		rhats = np.nan_to_num(rhats, nan=0.0, posinf=0.0, neginf=0.0) #fixes any divide by 0
+		alos = np.dot(accels*rhats)
+
+		atan_vec = accels - alos*rhats
+
+		bhats = np.array([np.cos(l)*np.sin(b), -np.sin(l)*np.sin(b), np.cos(b)])
+		lhats = np.array([np.sin(l), np.cos(l), 0])
+
+		atan_b = np.dot(atan_vec, bhats)
+		atan_l = np.dot(atan_vec, lhats)
+
+		#fix polar axis
+		polar_indx = (b == 90.) | (b == -90.)
+		np.place(atan_l, polar_indx, 0.)
+		np.place(atan_b, (b == 90.), -mags(atan_vec[(b == 90.)]))
+		np.place(atan_b, (b == -90.), mags(atan_vec[(b == -90.)]))
+
+		if angular: #kpc/s^2 -> radians/s^2
+			atan_b /= d 
+			atan_l = atan_l / d * np.cos(b)
+
+		return alos, atan_l, atan_b
 
 	#model1 + model2 returns a new CompositeModel
 	def __add__(self, model2):
@@ -559,7 +648,7 @@ class SinusoidalDisk(Model):
 	def __init__(self, **kwargs):
 		super().__init__()
 		self.name = 'Anharmonic Disk'
-		self.param_names = ['alpha', 'amp', 'lambda', 'phi']
+		self.param_names = ['alpha', 'amp', 'lam', 'phi']
 		self.param_defaults = [None, None, None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
@@ -701,30 +790,119 @@ class SphericalFlatRC(Model):
 		return ax, ay, az
 
 #---------------------------------------------------------------------------
-# Uniform Acceleration 
+# Uniform Line-of-Sight Acceleration 
 # useful for things like globular clusters where the MW acceleration field is ~ constant
 #---------------------------------------------------------------------------
-class UniformAccel(Model):
+class UniformAlos(Model):
 
 	def __init__(self, **kwargs):
 		super().__init__()
-		self.name = 'Uniform Acceleration'
+		self.name = 'Uniform Line-of-Sight Acceleration'
 		self.param_names = ['alos']
-		self.param_defaults = [None] #None if required param
+		self.param_defaults = [0.] #None if required param
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs): #should catch everything?
-		raise NotImplementedError('Uniform Acceleration model has no acc() method, it is meant to be used with alos().')
+		raise NotImplementedError('UniformAlos model has no acc() method, it is meant to be used with alos().')
 
 	def alos(self, l, b, d, **kwargs): #should catch everything?
 		return np.zeros(len(l)) + self.alos
 
+#---------------------------------------------------------------------------
+# Uniform 3D Acceleration 
+# useful for things like globular clusters where the MW acceleration field is ~ constant
+#---------------------------------------------------------------------------
+class Uniform3DAccel(Model):
+
+	def __init__(self, **kwargs):
+		super().__init__()
+		self.name = 'Uniform Acceleration'
+		self.param_names = ['ax', 'ay', 'az']
+		self.param_defaults = [0., 0., 0.] #None if required param
+		self._finish_init_model(**kwargs)
+
+	def accel(self, x, y, z, **kwargs): #should catch everything?
+		ax, ay, az = self.log_corr_params()
+		return np.zeros(len(x)) + ax, np.zeros(len(x)) + ay, np.zeros(len(x)) + az
+
+#-----------------------------------------
+# Cox & Gomez (2002) Spiral Arm Potential
+# Rather than do out all the derivatives I just numerically evaluate the acceleration at each point
+#    this is slower than if I had evaluated things out, but much better for my sanity
+#    might eventually add in functionality for linear combinations eventually, but for now we're just going to use 1 term in the sum (n=1)
+#    if speed is enough of a problem that the linear combination inside the model becomes important we're also better off analytically computing the derivative
+#-----------------------------------------
+class CoxGomezSpiralArm(Model):
+
+	def __init__(self, **kwargs):
+		super().__init__()
+		self.name = 'Cox-Gomez Spiral Arm'
+		self.param_names = ['N', 'alpha', 'rs', 'rh', 'phi0', 'rho0']
+		#N: number of spiral arms
+		#alpha: the pitch angle (in degrees)
+		#rs: scale length, kpc (i.e. double-exp disk)
+		#h: scale height, kpc (i.e. double-exp disk)
+		#r0: fiducial radius, kpc
+		#phi0: fiducial rotation phase (rad)
+		#rho_0: fiducial density at r0 and phi0, Msun/kpc^3
+
+		self.param_defaults = [2., 15., 7., 0.18, 0., 3.123e7] #None if required param; these are from Cox & Gomez (2002) as their fiducial parameters
+		self._finish_init_model(**kwargs)
+
+	def set_number_arms(self, N):
+		#this is a really dumb helper function that helps with optimization. However, it is really symptom of a greater problem that you can't currently lock parameters when fitting.
+		self.params['N'] = N
+
+	#helper function to evlauate the potential, since this is done multiple times below
+	def pot(self, x, y, z):
+		N, alpha, rs, rh, phi0, rho0 = self.log_corr_params()
+
+		r = (x**2 + y**2 + z**2)**0.5
+		phi = np.arctan2(y,-x) #left-handed, in radians
+
+		Kn = N/(r*np.sin(alpha*np.pi/180))
+		Bn = Kn*rh*(1 + 0.4*Kn*rh)
+		Dn = (1 + Kn*rh + 0.3*(Kn*rh)**2)/(1 + 0.3*Kn*rh)
+		gamma = N*(phi - phi0 - np.log(r/r_sun)/np.tan(alpha*np.pi/180)) #something like radians
+
+		out = -4*np.pi*G*rh*rho0 * np.exp(-(r - r_sun)/rs) * (1 / (Kn * Dn)) * np.cos(gamma) * (np.cosh(Kn*z/Bn))**(-Bn)
+
+		return out 
+
+	def accel(self, x, y, z, sun_pos=(r_sun, 0., 0.)): #this is probably pretty slow, fyi
+
+		#compute accelerations of each object
+		dr = 0.001 #kpc
+
+		pot_base    = self.pot(x, y, z)
+		pot_plus_dx = self.pot(x+dr, y,    z   )
+		pot_plus_dy = self.pot(x,    y+dr, z   )
+		pot_plus_dz = self.pot(x,    y,    z+dr)
+		
+		dpot_dx = -(pot_plus_dx - pot_base)/dr
+		dpot_dy = -(pot_plus_dy - pot_base)/dr
+		dpot_dz = -(pot_plus_dz - pot_base)/dr
+
+		#compute Solar acceleration and subtract off
+		pot_base_sun    = self.pot(sun_pos[0],    sun_pos[1],    sun_pos[2]   )
+		pot_plus_dx_sun = self.pot(sun_pos[0]+dr, sun_pos[1],    sun_pos[2]   )
+		pot_plus_dy_sun = self.pot(sun_pos[0],    sun_pos[1]+dr, sun_pos[2]   )
+		pot_plus_dz_sun = self.pot(sun_pos[0],    sun_pos[1],    sun_pos[2]+dr)
+		
+		dpot_dx_sun = -(pot_plus_dx_sun - pot_base_sun)/dr
+		dpot_dy_sun = -(pot_plus_dy_sun - pot_base_sun)/dr
+		dpot_dz_sun = -(pot_plus_dz_sun - pot_base_sun)/dr
+
+		ax = dpot_dx - dpot_dx_sun
+		ay = dpot_dy - dpot_dy_sun
+		az = dpot_dz - dpot_dz_sun
+
+		return ax, ay, az
+
 #-------------------------------------------------
 # Generic Gala Potential Wrapper
 # allows us to easily alos for any Gala potential
-# TODO: make this more homogenous
-#       i.e. act the same as the other models
-# CANNOT UPDATE PARAMS RIGHT NOW
+# TODO: cannot update params right now
 #-------------------------------------------------
 class GalaPotential(Model):
 
@@ -754,7 +932,7 @@ class GalaPotential(Model):
 #-------------------------------------------------
 # Generic Galpy Potential Wrapper
 # allows us to easily alos for any Galpy potential
-# TODO: CANNOT UPDATE PARAMS RIGHT NOW
+# TODO: cannot update params right now
 #-------------------------------------------------
 class GalpyPotential(Model):
 

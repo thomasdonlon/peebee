@@ -74,7 +74,7 @@ class Model:
 
 	def param_names_to_str(self):
 		out = ''
-		for pname, i in self.param_names:
+		for i, pname in enumerate(self.param_names):
 			if not self.param_defaults[i] is None:
 				out += pname + ', '
 			else:
@@ -99,6 +99,12 @@ class Model:
 					params[pname] = self.param_defaults[i]
 					self._disabled_params[i] = 1
 					self._disabled_param_names.append(pname)
+
+		#disable None values 
+		for i, pname in enumerate(self.param_names):
+			if params[pname] is None:
+				self._disabled_params[i] = 1
+				self._disabled_param_names.append(self.param_names[i])
 
 		self.set_params(params, ignore_name_check=False)
 		self._logparams = [0]*self.nparams
@@ -125,7 +131,7 @@ class Model:
 
 	@fix_arrays
 	@convert_to_frame('gal')
-	def alos(self, l, b, d, frame='gal', d_err=None, sun_pos=(r_sun, 0., 0.)): #includes solar accel!
+	def alos(self, l, b, d, frame='gal', d_err=None, sun_pos=(r_sun, 0., 0.), **kwargs): #includes solar accel!
 		"""
 		Compute the line-of-sight component of the acceleration. This is acceleration relative to the Sun. 
 
@@ -140,16 +146,16 @@ class Model:
 		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
 		z = d*np.sin(b*np.pi/180)
 
-		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
-		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
+		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2], **kwargs)).T
+		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z, **kwargs)).T - asun  #subtract off solar accel
 
 		los_vecs = (np.array([x, y, z]/d).T)
 		los_accels = np.sum(accels*los_vecs, axis=-1) #works for arrays and floats
 
 		if d_err is not None:
 
-			alos_plus_derr = self.alos(l, b, d+d_err, sun_pos=sun_pos)
-			alos_minus_derr = self.alos(l, b, d-d_err, sun_pos=sun_pos)
+			alos_plus_derr = self.alos(l, b, d+d_err, sun_pos=sun_pos, **kwargs)
+			alos_minus_derr = self.alos(l, b, d-d_err, sun_pos=sun_pos, **kwargs)
 
 			return los_accels, np.abs(alos_plus_derr - alos_minus_derr)/2
 
@@ -314,7 +320,7 @@ class CompositeModel:
 
 	@fix_arrays
 	@convert_to_frame('cart')
-	def accel(self, x, y, z, frame='cart', **kwargs): #should catch everything? Don't think we currently pass any kwargs to accel though
+	def accel(self, x, y, z, frame='cart', **kwargs): #should catch everything?
 		if len(self.models) == 0:
 			raise NotImplementedError('Uninitialized CompositeModel has no Models.')
 		else:
@@ -326,20 +332,20 @@ class CompositeModel:
 			for m in self.models:
 				#print(m.name)
 				#print(np.array(m.accel(x, y, z, **kwargs))*3.086e21)
-				out += m.accel(x, y, z, **kwargs)
+				out = out + m.accel(x, y, z, **kwargs)
 			return out[0], out[1], out[2]
 
 	@fix_arrays
 	@convert_to_frame('gal')
-	def alos(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.)): #includes solar accel!
+	def alos(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.), **kwargs): #includes solar accel!
 
 		#heliocentric, can't use frame='cart' because that's Galactocentric
 		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
 		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
 		z = d*np.sin(b*np.pi/180)
 
-		alossun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
-		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - alossun  #subtract off solar accel
+		alossun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2], **kwargs)).T
+		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z, **kwargs)).T - alossun  #subtract off solar accel
 
 		los_vecs = (np.array([x, y, z]/d).T)
 		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
@@ -381,7 +387,7 @@ class NFW(Model):
 		self.param_defaults = [None, None, 1.] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self, x, y, z):
+	def accel(self, x, y, z, **kwargs):
 		mvir, rs, q = self.log_corr_params()
 
 		#TODO: remove this later if it isn't a problem
@@ -420,7 +426,7 @@ class Hernquist(Model):
 		self.param_defaults = [None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self, x, y, z):
+	def accel(self, x, y, z, **kwargs):
 		mtot, rs = self.log_corr_params()
 
 		R = (x**2 + y**2)**0.5
@@ -446,7 +452,7 @@ class Plummer(Model):
 		self.param_defaults = [None, None, 0., 0., 0.] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self, x, y, z):
+	def accel(self, x, y, z, **kwargs):
 
 		mtot, rs, xc, yc, zc = self.log_corr_params()
 
@@ -455,7 +461,7 @@ class Plummer(Model):
 
 		xi, yi, zi = x-xc, y-yc, z-zc
 
-		ri = np.sqrt(xi**2 + yi**2 + zi**2)
+		ri = (xi**2 + yi**2 + zi**2)**0.5
 		frac = -G*mtot/((ri**2 + rs**2)**(3/2))
 		ax = frac*xi
 		ay = frac*yi
@@ -475,7 +481,7 @@ class MiyamotoNagaiDisk(Model):
 		self.param_defaults = [None, None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self,x,y,z):
+	def accel(self, x, y, z, **kwargs):
 		mtot, a, b = self.log_corr_params()
 
 		R = (x**2 + y**2)**0.5
@@ -489,17 +495,33 @@ class MiyamotoNagaiDisk(Model):
 
 		return ax, ay, az
 
-	# #gala version (very slow!)
-	# def accel(self,x,y,z):
-	# 	mtot, a, b = self.log_corr_params()
+#--------------------------
+# Offset Miyamoto-Nagai Disk
+#--------------------------
+class OffsetMiyamotoNagaiDisk(Model):
+	#identical to the above MND potential except the z0 parameter describes a vertical shift in the midplane height
 
-	# 	pot = MiyamotoNagaiPotential(mtot*u.solMass, a*u.kpc, b*u.kpc, units=UnitSystem(u.kpc, u.s, u.solMass, u.radian))
-	# 	a = pot.acceleration(np.array([x,y,z])*u.kpc).value
-		
-	# 	if isinstance(x, float):
-	# 		return a[0][0], a[1][0], a[2][0]
-	# 	else:
-	# 		return a[0], a[1], a[2]
+	def __init__(self, **kwargs):
+		super().__init__()
+		self.name = 'Offset Miyamoto-Nagai Disk'
+		self.param_names = ['m_tot', 'a', 'b', 'z0']
+		self.param_defaults = [None, None, None, 0.] #None if required param
+		self._finish_init_model(**kwargs)
+
+	def accel(self, x, y, z, **kwargs):
+		mtot, a, b, z0 = self.log_corr_params()
+
+		R = (x**2 + y**2)**0.5
+		zi = z - z0
+
+		abz = (a + (zi**2 + b**2)**0.5)
+		ar = -G*mtot*R/(R**2 + abz**2)**(3/2)
+		az = -G*mtot*z*abz/((b**2 + zi**2)**0.5*(R**2 + abz**2)**(3/2))
+
+		ax = ar*x/R
+		ay = ar*y/R
+
+		return ax, ay, az
 
 #--------------------------
 # Point Mass
@@ -513,7 +535,7 @@ class PointMass(Model):
 		self.param_defaults = [None, 0., 0., 0.] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self,x,y,z):
+	def accel(self, x, y, z, **kwargs):
 		m, x0, y0, z0 = self.log_corr_params()
 
 		xi = x0 - x
@@ -535,7 +557,7 @@ class OortExpansion(Model):
 	#vert_only flg allows you to just use the vertical potential
 	def __init__(self, vert_only=False, **kwargs):
 		super().__init__()
-		self.name = 'Quillen Flexible'
+		self.name = 'Oort Expansion'
 		self.param_names = ['alpha1', 'alpha2', 'beta', 'vcirc']
 		self.param_defaults = [None, 0., 0., vlsr] #None if required param
 		self._vert_only = vert_only
@@ -544,7 +566,7 @@ class OortExpansion(Model):
 	def set_vert_only(self, b):
 		self._vert_only = b
 
-	def accel(self,x,y,z):
+	def accel(self, x, y, z, **kwargs):
 		alpha1, alpha2, beta, vcirc = self.log_corr_params()
 
 		#TODO: remove this later if there aren't problems
@@ -580,7 +602,7 @@ class Cross(Model):
 		self.param_defaults = [None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self,x,y,z):
+	def accel(self, x, y, z, **kwargs):
 		alpha, gamma = self.log_corr_params()
 
 		R = np.sqrt(x*x + y*y)
@@ -613,7 +635,7 @@ class AnharmonicDisk(Model): #TODO: can in theory take as many terms of the powe
 		self.param_defaults = [None, 0., 0.] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self, x, y, z):
+	def accel(self, x, y, z, **kwargs):
 		alpha1, alpha2, alpha3 = self.log_corr_params()
 
 		#TODO: remove this later if no problems
@@ -652,7 +674,7 @@ class SinusoidalDisk(Model):
 		self.param_defaults = [None, None, None, None] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self, x, y, z):
+	def accel(self, x, y, z, **kwargs):
 		alpha, amp, lam, phi = self.log_corr_params()
 
 		k = 2*np.pi/lam
@@ -678,17 +700,50 @@ class IsothermalDisk(Model):
 	def __init__(self, **kwargs):
 		super().__init__()
 		self.name = 'Isothermal Disk'
-		self.param_names = ['sigma', 'z0', 'b']
-		self.param_defaults = [None, None, None] #None if required param
+		self.param_names = ['sigma', 'z0', 'b', 'vlsr']
+		self.param_defaults = [None, 0., None, vlsr] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self, x, y, z):
-		sigma, z0, b = self.log_corr_params()
+	def accel(self, x, y, z, **kwargs):
+		sigma, z0, b, v0 = self.log_corr_params()
 
 		R = (x**2 + y**2)**0.5
 
-		ar = -vlsr**2/R*kmtokpc**2
-		az = -(sigma*kmtokpc)**2/b * np.tanh((z-z0)/b)
+		ar = -v0**2/R*kmtokpc**2
+		az = -2*(sigma*kmtokpc)**2/b * np.tanh((z-z0)/b)
+
+		ax = ar*x/R
+		ay = ar*y/R
+
+		return ax, ay, az
+
+#--------------------------
+# Isothermal Disk with Beta 
+#--------------------------
+class IsothermalDiskBeta(Model):
+
+	#sigma = km/s (velocity dispersion)
+	#z0 = kpc, local grav. midplane
+	#b = kpc, scale height
+	#beta = unitless, related to slope of rotation curve
+	def __init__(self, **kwargs):
+		super().__init__()
+		self.name = 'Isothermal Disk'
+		self.param_names = ['sigma', 'z0', 'b', 'beta', 'vlsr']
+		self.param_defaults = [None, 0., None, 0., vlsr] #None if required param
+		self._finish_init_model(**kwargs)
+
+	def accel(self, x, y, z, **kwargs):
+		sigma, z0, b, beta, v0 = self.log_corr_params()
+
+		R = (x**2 + y**2)**0.5
+
+		if beta == 0.:
+			ar = -v0**2/R*kmtokpc**2
+		else:
+			ar = -(v0*kmtokpc)**2*((1./Rsun)**(2.*beta))*(R**((2.*beta)-1.))
+
+		az = -2*(sigma*kmtokpc)**2/b * np.tanh((z-z0)/b)
 
 		ax = ar*x/R
 		ay = ar*y/R
@@ -712,7 +767,7 @@ class LocalExpansion(Model):
 		self.neg_dadr = neg_dadr
 		self.neg_dadphi = neg_dadphi
 
-	def accel(self, x, y, z):
+	def accel(self, x, y, z, **kwargs):
 		dadr, dadphi, dadz = self.log_corr_params()
 
 		#allows for negative values when using log 
@@ -747,7 +802,7 @@ class DamourTaylorPotential(Model):
 		self.param_defaults = []
 		self._finish_init_model(**kwargs)
 
-	def accel(self, x, y, z):
+	def accel(self, x, y, z, **kwargs):
 
 		R = (x**2 + y**2)**0.5 #galactocentric
 
@@ -772,7 +827,7 @@ class SphericalFlatRC(Model):
 		self.param_defaults = [0.] #None if required param
 		self._finish_init_model(**kwargs)
 
-	def accel(self, x, y, z):
+	def accel(self, x, y, z, **kwargs):
 
 		if vcirc == 0.:
 			vcirc = vlsr
@@ -869,7 +924,7 @@ class CoxGomezSpiralArm(Model):
 
 		return out 
 
-	def accel(self, x, y, z, sun_pos=(r_sun, 0., 0.)): #this is probably pretty slow, fyi
+	def accel(self, x, y, z, sun_pos=(r_sun, 0., 0.), **kwargs): #this is probably pretty slow, fyi
 
 		#compute accelerations of each object
 		dr = 0.001 #kpc
@@ -915,7 +970,7 @@ class GalaPotential(Model):
 		self._finish_init_model(**kwargs)
 		self.pot = pot
 
-	def accel(self, x, y, z): 
+	def accel(self, x, y, z, **kwargs): 
 
 		a = self.pot.acceleration(np.array([x,y,z])*u.kpc).to(u.kpc/u.s**2).value
 		
@@ -945,12 +1000,52 @@ class GalpyPotential(Model):
 		self._finish_init_model(**kwargs)
 		self.pot = pot
 
-	def accel(self, x, y, z): 
+	def accel(self, x, y, z, **kwargs): 
 
 		R = (x**2 + y**2)**0.5
 
-		az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value #convert from galpy coords
-		ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value
+		try:
+			az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value #convert from galpy coords
+			ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value
+		except TypeError: #this happens in some potentials that require expensive integrals to compute, such as AnyAxisymmetricRazorThinDiskPotential, which cannot handle arrays
+			#iterate through input by input, in that case
+			#WARNING: This will be extremely slow
+			az = np.array([(evaluatezforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))]) 
+			ar = np.array([(evaluateRforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))])
+
+		ax = ar*x/R
+		ay = ar*y/R
+
+		return ax, ay, az
+
+#--------------------------
+# Density Oscillation in R
+#--------------------------
+class RadialDensityOscillation(Model):
+
+	#amp = Msun/kpc^3 (scales amplitude of output, equal to volume density of oscillation at peak R => Rmax = lam * (pi/4 - phi)/2pi )
+	#lam = kpc, wavelength of oscillation
+	#phi = radians, offset of peak/trough (peaks will be located at R0 + lambda/4 + 2*n*lambda where n = 0, 1, 2, ... and phi = -2*pi*R0/lambda)
+	def __init__(self, **kwargs):
+		super().__init__()
+		self.name = 'Radial Density Oscillation'
+		self.param_names = ['amp', 'lam', 'phi']
+		self.param_defaults = [None, None, None] #None if required param
+		self._finish_init_model(**kwargs)
+
+	def accel(self, x, y, z, **kwargs):
+		amp, lam, phi = self.log_corr_params()
+
+		R = (x**2 + y**2)**0.5
+
+		alpha = 2*np.pi*R/lam + phi
+		ar = -G*amp/np.pi * (lam/R) * (lam*np.sin(alpha) - 2*np.pi*R*np.cos(alpha))
+
+		#check if R is array-like to set the correct behavior
+		if isinstance(R, type(np.array([]))):
+			az = np.zeros(len(R))
+		else:
+			az = 0.
 
 		ax = ar*x/R
 		ay = ar*y/R

@@ -88,7 +88,7 @@ def pdot_shk(p, mu, d):
 	"""
 
 	mu *= 1.537e-16 #to rad/s
-	d = 3.086e19 #to m
+	d *= 3.086e19 #to m
 
 	#TODO: c should be grabbed from somewhere rather than being 3e8
 	pdot_shk = p*mu**2*d/3e8
