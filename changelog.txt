@@ -1,3 +1,8 @@
+v1.2.1
+ - added density function to NFW model
+ - fixed vertical acceleration of exponential disk
+ - bug fix in models.atan() and models.a_gal_sph()
+
 v1.2.0
  - model params set to None are now correctly disabled on init
  - fixed bug in distance calculation for convenience.pdot_shk()

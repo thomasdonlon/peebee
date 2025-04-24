@@ -19,6 +19,7 @@ peebee/convenience.py
 peebee/fitter.py
 peebee/glob.py
 peebee/models.py
+peebee/noise.py
 peebee/sampler.py
 peebee/transforms.py
 peebee.egg-info/PKG-INFO
@@ -32,5 +33,6 @@ peebee/__pycache__/decorators.cpython-310.pyc
 peebee/__pycache__/fitter.cpython-310.pyc
 peebee/__pycache__/glob.cpython-310.pyc
 peebee/__pycache__/models.cpython-310.pyc
+peebee/__pycache__/noise.cpython-310.pyc
 peebee/__pycache__/sampler.cpython-310.pyc
 peebee/__pycache__/transforms.cpython-310.pyc

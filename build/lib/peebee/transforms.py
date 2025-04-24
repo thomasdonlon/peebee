@@ -5,6 +5,8 @@ This submodule is home to coordinate transformations that help improve the gener
 import numpy as np
 from functools import wraps 
 from .glob import fix_arrays, r_sun
+from astropy.coordinates import SkyCoord
+import astropy.units as u
 
 #stolen from mwahpy
 @fix_arrays
@@ -108,6 +110,7 @@ def convert_to_frame(fr):
 				coords = sc.galactic
 				l = coords.l.value
 				b = coords.b.value
+				d = args[offset+2]
 
 			elif frame == 'cart': #fr is not cart
 				l, b, d = cart_to_gal(args[offset+0], args[offset+1], args[offset+2], sun_pos=sun_pos)
