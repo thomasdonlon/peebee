@@ -131,7 +131,7 @@ def approx_hess_inv(params, model, data, dparams, noise_model='none', sun_pos=(r
 	try:
 		hess_inv = np.linalg.inv(hess)
 	except np.linalg.LinAlgError as err:
-		print('(probably) a singular matrix error: providing params and hess:')
+		print('NumPy threw an error, usually this is because the hessian was singular.\nProviding params and hessian:')
 		print(f'params: {params}')
 		print(f'hess: {hess}')
 		raise err
@@ -209,21 +209,32 @@ def fit_model(l, b, d, alos, alos_err, model, bounds, frame='gal', mode='gd', sc
 	if 'scale' in kwargs.keys():
 		scale = kwargs['scale']
 
+	#check that there are enough datapoints to calculate a reduced chi^2
 	params = result.x
-	red_chi2 = result.fun/(len(alos) - len(params) - 1)
-	aic = 2*len(params) + result.fun
-	if print_out:
-		rss(params, model, data, scale, sun_pos, negative_mass, noise_model, print_out=print_out)
-		print(f'Final reduced chi^2: {red_chi2}')
-		print(f'Final AIC: {aic}')
-		print(f'Params: {model.params}')
+	if (len(alos) - len(params) - 1) <= 0:
+		print("Warning: Not enough datapoints to constrain result!")
+		red_chi2 = -999.
+		errors = np.zeros(len(params)) - 999.
+		aic = -999.
+	else:
+		red_chi2 = result.fun/(len(alos) - len(params) - 1)
+		aic = 2*len(params) + result.fun
+		if print_out:
+			rss(params, model, data, scale, sun_pos, negative_mass, noise_model, print_out=print_out)
+			print(f'Final reduced chi^2: {red_chi2}')
+			print(f'Final AIC: {aic}')
+			print(f'Params: {model.params}')
 
-	#calculate errors
-	hess, hess_inv = approx_hess_inv(params, model, data, h*np.array(params), noise_model=noise_model, sun_pos=sun_pos)
-	if print_out:
-		print(f'Hessian: {hess}')
-		print(f"Std. Errors: {np.diag(hess_inv/len(alos))**0.5}")
+		#calculate errors
+		try:
+			hess, hess_inv = approx_hess_inv(params, model, data, h*np.abs(np.array(params)), noise_model=noise_model, sun_pos=sun_pos)
+			if print_out:
+				print(f'Hessian: {hess}')
+				print(f"Std. Errors: {np.diag(hess_inv/len(alos))**0.5}")
 
-	errors = np.diag(hess_inv/len(alos))**0.5
+			errors = np.diag(hess_inv/len(alos))**0.5
+		except np.linalg.LinAlgError:
+			print('The Hessian matrix was (probably) singular. This can happen if the optimizer failed or if you have a small number of datapoints.')
+			errors = np.zeros(len(params)) - 999.
 
 	return params, errors, red_chi2, aic, result

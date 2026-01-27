@@ -68,7 +68,7 @@ MAJOR:
 MINOR:
  - Agama potentials?
 
-ISSUES
+KNOWN ISSUES
 ========================================
 
-- Currently, the most up-to-date versions of astropy (v6.1.0) and gala (v1.8.1) result in an error being produced when computing accelerations using Gala potentials. This can be resolved by downgrading astropy to v5.3.0. 
+- Certain versions of astropy (v6.1.0) and gala (v1.8.1) result in an error being produced when computing accelerations using Gala potentials. This can be resolved by downgrading astropy to v5.3.0 or upgrading Gala to the most recent version. 

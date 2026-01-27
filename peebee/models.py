@@ -21,8 +21,6 @@ from .glob import fix_arrays, r_sun
 
 #G = 4.301e-6 #kpc/Msun (km/s)^2
 G = 4.516e-39 #kpc^3/Msun/s^2  (all accels will be in kpc/s^2) #kpc/s^2 * kpc^2/Msun
-# Rsun = 8.0 #kpc
-# vlsr = 220 #km/s
 Rsun = 8.178 #kpc
 vlsr = 232.8 #km/s
 kmtokpc = 3.241e-17
@@ -124,7 +122,7 @@ class Model:
 			self.params[self.param_names[i]] = params[self.param_names[i]]
 
 	def get_param_names(self):
-		return param_names
+		return self.param_names
 
 	def accel(self, x, y, z, **kwargs): #should catch everything?
 		raise NotImplementedError('Uninitialized model has no acc() method. Try initializing an existing model or defining your own.')

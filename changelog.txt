@@ -1,3 +1,10 @@
+v1.2.2
+ - bugfix for fitter.fit_model where negative parameter values are now handled correctly
+ - submodules are now imported immediately upon package import
+ - fitter.fit_model now warns you if you are not constraining the result and returns null errors rather than crash or produce garbage
+ - added some checks for data and hessian quality in error handling for fitter.fit_model
+ - default sun position changed to left-handed coordinate system for consistency
+
 v1.2.1
  - added density function to NFW model
  - fixed vertical acceleration of exponential disk

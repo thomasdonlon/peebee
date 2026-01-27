@@ -183,7 +183,7 @@ class Model:
 		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
 		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
 
-		los_vecs = (np.array([x, y, z]/d).T)
+		los_vecs = (np.array([x, y, z])/d).T
 		los_accels = np.sum(accels*los_vecs, axis=-1) #works for arrays and floats
 
 		tan_accels = np.sum((accels - los_accels*los_vecs)**2, axis=1)**0.5 #magnitude of tangential accels
@@ -217,7 +217,7 @@ class Model:
 		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2])).T
 		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z)).T - asun  #subtract off solar accel
 
-		rhats = (np.array([x, y, z]/d).T)
+		rhats = (np.array([x, y, z])/d).T
 		rhats = np.nan_to_num(rhats, nan=0.0, posinf=0.0, neginf=0.0) #fixes any divide by 0
 		alos = np.dot(accels*rhats)
 
@@ -414,6 +414,20 @@ class NFW(Model):
 
 		return ax, ay, az
 
+	def density(self, x, y, z, **kwargs): 
+		mvir, rs, q = self.log_corr_params()
+
+		r = (x**2 + y**2 + (z/q)**2)**0.5
+		R = (x**2 + y**2)**0.5
+
+		rvir = (3/(4*np.pi) * mvir / (200*rho_crit))**(1/3) 
+		c = rvir / rs
+		rho0 = mvir / (4*np.pi * rs**3 * (np.log(1 + c) - c/(1+c)) )
+
+		rho = rho0 / ((r/rs)*(1+r/rs)**2)
+
+		return rho #Msun/kpc^3
+
 #--------------------------
 # Hernquist
 #--------------------------
@@ -469,16 +483,31 @@ class Plummer(Model):
 	
 		return ax, ay, az
 
+	def density(self, x, y, z, **kwargs):
+
+		mtot, rs, xc, yc, zc = self.log_corr_params()
+
+		if (xc is None) or (yc is None) or (zc is None):
+			xc, yc, zc = 0., 0., 0.
+
+		xi, yi, zi = x-xc, y-yc, z-zc
+
+		ri = (xi**2 + yi**2 + zi**2)**0.5
+		rho = 3*mtot / (4*np.pi*rs**3) * (1 + ri**2/rs**2)**(-5/2)
+
+		return rho #Msun/kpc^3
+
 #--------------------------
 # Miyamoto-Nagai Disk
 #--------------------------
 class MiyamotoNagaiDisk(Model):
 
-	def __init__(self, **kwargs):
+	def __init__(self, only_vertical=False, **kwargs):
 		super().__init__()
 		self.name = 'Miyamoto-Nagai Disk'
 		self.param_names = ['m_tot', 'a', 'b']
 		self.param_defaults = [None, None, None] #None if required param
+		self.only_vertical = only_vertical
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
@@ -487,7 +516,10 @@ class MiyamotoNagaiDisk(Model):
 		R = (x**2 + y**2)**0.5
 
 		abz = (a + (z**2 + b**2)**0.5)
-		ar = -G*mtot*R/(R**2 + abz**2)**(3/2)
+		if self.only_vertical:
+			ar = 0.
+		else:
+			ar = -G*mtot*R/(R**2 + abz**2)**(3/2)
 		az = -G*mtot*z*abz/((b**2 + z**2)**0.5*(R**2 + abz**2)**(3/2))
 
 		ax = ar*x/R
@@ -710,7 +742,34 @@ class IsothermalDisk(Model):
 		R = (x**2 + y**2)**0.5
 
 		ar = -v0**2/R*kmtokpc**2
-		az = -2*(sigma*kmtokpc)**2/b * np.tanh((z-z0)/b)
+		az = -(sigma*kmtokpc)**2/b * np.tanh((z-z0)/b)
+
+		ax = ar*x/R
+		ay = ar*y/R
+
+		return ax, ay, az
+
+#--------------------------
+# Exponential Disk (NOT a Double Exponential Disk!)
+#--------------------------
+class ExponentialDisk(Model):
+
+	#rho0 = Msun/kpc^3 (density in the midplane)
+	#hz = kpc, scale height
+	def __init__(self, **kwargs):
+		super().__init__()
+		self.name = 'Exponential Disk'
+		self.param_names = ['rho0', 'hz', 'vlsr']
+		self.param_defaults = [None, None, vlsr] #None if required param
+		self._finish_init_model(**kwargs)
+
+	def accel(self, x, y, z, **kwargs):
+		rho0, hz, v0 = self.log_corr_params()
+
+		R = (x**2 + y**2)**0.5
+
+		ar = -v0**2/R*kmtokpc**2
+		az = -4*np.pi*rho0*G*hz*(1 - np.exp(-np.abs(z)/hz))*np.sign(z)
 
 		ax = ar*x/R
 		ay = ar*y/R
