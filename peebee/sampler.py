@@ -3,7 +3,7 @@ This submodule contains a few sampling routines for generating accelerations fro
 """
 
 import numpy as np
-from .glob import r_sun
+from .glob import r_sun, fix_arrays
 
 #===============================================================================
 # Functions
@@ -45,3 +45,29 @@ def sample_alos_sources_uniform(model, n, bounds, sun_pos=(r_sun, 0., 0.)):
 
 	return x, y, z, alos
 
+#perturb a set of values with a few different noise models
+@fix_arrays
+def perturb_value(value, value_unc, noise_model='gaussian', relative_err=False):
+	#value: array of values to be perturbed
+	#value_unc: either a single uncertainty value (float) or an array of uncertainties the same length as value
+	#noise_model: string specifying the noise model to use. 
+	#relative_err: if True, value_unc is treated as a fractional uncertainty rather than an absolute one
+
+	if relative_err:
+		noise_level = value_unc * np.abs(value)
+	else:
+		noise_level = value_unc
+
+	if noise_model == 'gaussian':
+		value_perturbed = value + noise_level*np.random.normal(loc=0., scale=1., size=len(value))
+
+	elif noise_model == 'lorentzian':
+		value_perturbed = value + noise_level*np.random.standard_cauchy(size=len(value))
+
+	elif noise_model == 'uniform':
+		value_perturbed = value + noise_level*np.random.uniform(low=-1, high=1, size=len(value))
+
+	else:
+		raise ValueError(f'Noise model {noise_model} not recognized. Available models are "gaussian", "lorentzian", and "uniform".')
+
+	return value_perturbed
