@@ -5,6 +5,7 @@ v1.2.2
  - added some checks for data and hessian quality in error handling for fitter.fit_model
  - default sun position changed to left-handed coordinate system for consistency
  - added sampler.perturb_value() for noise generation in quantity arrays
+ - changed names of two modules: "fitter" -> "optimize", "sampler" -> "sampling"
 
 v1.2.1
  - added density function to NFW model

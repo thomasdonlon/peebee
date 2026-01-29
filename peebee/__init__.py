@@ -1,8 +1,8 @@
 #make all submodules available upon import
 import peebee.convenience
-import peebee.fitter
+import peebee.optimize
 import peebee.glob
 import peebee.models
 import peebee.noise
-import peebee.sampler
+import peebee.sampling
 import peebee.transforms

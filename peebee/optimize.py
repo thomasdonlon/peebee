@@ -14,6 +14,67 @@ from .glob import kpctocm, r_sun
 from .noise import get_noise_model_likelihood
 
 #-----------------------------------------------------------------
+# CLASSES
+#-----------------------------------------------------------------
+
+#helper class to interface between scipy optimizers and peebee models
+#specifically, this allows us to pass only the free parameters to the optimizer
+# while still being able to update the full model with fixed parameters as needed
+class Fitter:
+	def __init__(self, model=None, noise_model='none'):
+		self.params = {}
+		self.set_model(model)
+		self.noise_model = noise_model
+
+		#need to keep track of which parameters are being optimized
+		self.param_names_to_optimize = []
+		
+	def set_model(self, model):
+		self.model = model
+		for n in model.param_names:
+			self.params[n] = model.params[n]
+
+	#may change how noise models work later as a class, but for now this is fine
+	def set_noise_model(self, noise_model):
+		self.noise_model = noise_model
+
+	def set_params_to_optimize(self, param_names):
+		self.param_names_to_optimize = param_names
+
+	def update_params(self, params):
+		#have to get crafty about how we update the parameters, remembering that None params are disabled
+		#and that composite models and models have different setups for their params
+
+		if isinstance(self.model, Model): #single model version 
+
+			new_params = dict()
+			i = 0
+			for n in self.model.param_names:
+				if n in self.model._disabled_param_names:
+					new_params[n] = self.model.get_param_default(n)
+				else:
+					new_params[n] = params[i]
+					i += 1
+
+		elif isinstance(self.model, CompositeModel):
+
+			new_params = []
+			i = 0
+			for m in self.model.models:
+				single_model_params = dict()
+				for n in m.param_names:
+					if n in m._disabled_param_names:
+						single_model_params[n] = m.get_param_default(n)
+					else:
+						single_model_params[n] = params[i]
+						i += 1
+				new_params.append(single_model_params)
+
+		self.model.set_params(new_params)
+
+
+
+#-----------------------------------------------------------------
 # Likelihood and Uncertainty Functions
 #-----------------------------------------------------------------
 
