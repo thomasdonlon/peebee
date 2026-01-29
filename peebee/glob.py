@@ -16,6 +16,7 @@ from astropy.coordinates import SkyCoord
 #===============================================================================
 kpcs2tommsyr = 9.731e29 
 kpctocm = 3.086e21 # convert kpc to cm
+r_sun = 8.178 # kpc - Solar position
 
 #===============================================================================
 # DECORATORS
