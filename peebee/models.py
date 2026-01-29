@@ -148,19 +148,6 @@ class Model:
 			log_status[param_name] = bool(self._logparams[i])
 		return log_status
 
-	def set_optimization_params(self, opt_params):
-		"""
-		Set parameters from optimization space (stored as-is).
-		
-		:opt_params: Dictionary of parameters from optimization
-		"""
-		for param_name, value in opt_params.items():
-			if param_name in self.param_names:
-				# Store values directly (optimizer provides values in correct space)
-				self.params[param_name] = value
-			else:
-				raise ValueError(f"Parameter '{param_name}' not found in model {self.name}")
-
 	def accel(self, x, y, z, **kwargs): #should catch everything?
 		raise NotImplementedError('Uninitialized model has no acc() method. Try initializing an existing model or defining your own.')
 
@@ -506,30 +493,6 @@ class CompositeModel:
 				qualified_name = f"{model_name}.{param_name}"
 				log_status[qualified_name] = is_log
 		return log_status
-
-	def set_optimization_params(self, qualified_opt_params):
-		"""
-		Set parameters from optimization space using qualified names.
-		
-		:qualified_opt_params: Dictionary of qualified parameters from optimization
-		"""
-		# Group parameters by model
-		model_params = {}
-		for qualified_name, value in qualified_opt_params.items():
-			if '.' in qualified_name:
-				model_name, param_name = qualified_name.split('.', 1)
-				if model_name not in model_params:
-					model_params[model_name] = {}
-				model_params[model_name][param_name] = value
-			else:
-				raise ValueError(f"Parameter name '{qualified_name}' must be qualified (model_name.param_name)")
-		
-		# Update each model
-		for model_name, params in model_params.items():
-			if model_name in self.models:
-				self.models[model_name].set_optimization_params(params)
-			else:
-				raise ValueError(f"Model '{model_name}' not found in composite. Available models: {list(self.models.keys())}")
 
 #--------------------------
 # NFW

@@ -71,3 +71,31 @@ def perturb_value(value, value_unc, noise_model='gaussian', relative_err=False):
 		raise ValueError(f'Noise model {noise_model} not recognized. Available models are "gaussian", "lorentzian", and "uniform".')
 
 	return value_perturbed
+
+#generate a sample of n alos sources randomly distributed on the sky within max_distance from Sun
+def sample_sky_uniform(model, n, max_distance=3.0, sun_pos=(r_sun, 0., 0.)):
+	"""
+	Generate uniform random sample of line-of-sight accelerations from sky positions.
+	
+	:model: Gravitational model to compute accelerations from
+	:n: Number of sample points to generate
+	:max_distance: Maximum heliocentric distance in kpc 
+	:sun_pos: Solar position in Galactocentric coordinates (kpc)
+	:return: l (deg), b (deg), d (kpc), alos (kpc/s^2)
+	"""
+	# Generate uniform random positions on unit sphere
+	# Use method from Muller et al. for uniform distribution
+	u1 = np.random.random(n)
+	u2 = np.random.random(n)
+	
+	# Convert to spherical coordinates
+	l = u1 * 360.0  # Galactic longitude [0, 360) degrees
+	b = np.arcsin(2*u2 - 1) * 180.0 / np.pi  # Galactic latitude [-90, 90] degrees
+	
+	# Generate uniform random distances
+	d = np.random.random(n)**(1.0/3.0) * max_distance  # Uniform in volume
+	
+	# Compute line-of-sight accelerations
+	alos = model.alos(l, b, d, frame='gal', sun_pos=sun_pos)
+	
+	return l, b, d, alos

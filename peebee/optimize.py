@@ -63,6 +63,7 @@ class Fitter:
 		self.sun_pos = (r_sun, 0., 0.)
 		self.negative_mass = False #TODO: remove the negative mass stuff
 		self.scale = 1.0 #TODO: remove the scale stuff, that's just for internal testing
+		self.noise_model = 'none'  # Default to no noise model
 	
 	def set_model(self, model):
 		"""Set the gravitational potential model to fit."""
@@ -141,10 +142,8 @@ class Fitter:
 	
 	def _get_current_optimization_values(self):
 		"""Get current parameter values in optimization space (log space for log params)."""
-		if isinstance(self.model, CompositeModel):
-			opt_params = self.model.get_optimization_params() #XXX check this
-		else:
-			opt_params = self.model.get_optimization_params()
+		# Use existing params property - CompositeModel already returns qualified names
+		opt_params = self.model.params
 		
 		# Extract only the parameters we're optimizing
 		current_values = []
@@ -189,9 +188,9 @@ class Fitter:
 		return rss
 	
 	def _update_model_params(self, param_dict):
-		"""Update model parameters with qualified names using log-aware methods."""
+		"""Update model parameters with qualified names using existing methods."""
 		if isinstance(self.model, CompositeModel):
-			self.model.set_optimization_params(param_dict)
+			self.model.set_qualified_params(param_dict)
 		else:
 			# For single models, strip any prefix if present and create clean param dict
 			clean_params = {}
@@ -202,7 +201,7 @@ class Fitter:
 				else:
 					clean_params[param_name] = value
 			
-			self.model.set_optimization_params(clean_params)
+			self.model.set_params(clean_params)
 	
 	def optimize(self, method='differential_evolution', **kwargs):
 		"""
