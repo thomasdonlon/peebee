@@ -10,14 +10,10 @@ This doesn't need to show up in Sphinx.
 import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-#import inspect
 
 #===============================================================================
 # CONSTANTS
 #===============================================================================
-
-r_sun = 8.0 #kpc
-
 kpcs2tommsyr = 9.731e29 
 kpctocm = 3.086e21 # convert kpc to cm
 

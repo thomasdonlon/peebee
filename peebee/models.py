@@ -12,8 +12,6 @@ reach out and ask that it be added to a future version of peebee.
 import numpy as np
 import astropy.units as u
 from galpy.potential import HernquistPotential, evaluatezforces, evaluateRforces
-from gala.potential.potential import MiyamotoNagaiPotential
-from gala.units import UnitSystem
 
 from .convenience import mags
 from .transforms import convert_to_frame
@@ -427,7 +425,7 @@ class NFW(Model):
 		return rho #Msun/kpc^3
 
 #--------------------------
-# Hernquist
+# Hernquist #TODO: should be hardcoded, rather than defaulting to a galpy potential
 #--------------------------
 class Hernquist(Model):
 

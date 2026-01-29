@@ -5,7 +5,6 @@ It can also be used to evaluate how good of a fit a given potential is when appl
 
 import numpy as np
 from scipy.optimize import minimize, differential_evolution
-from uncertainties import ufloat
 import astropy.units as u 
 
 from .transforms import convert_to_frame
