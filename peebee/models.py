@@ -17,10 +17,10 @@ from .convenience import mags
 from .transforms import convert_to_frame
 from .glob import fix_arrays, r_sun
 
+#TODO: should be settable/grabbable globally
 #G = 4.301e-6 #kpc/Msun (km/s)^2
 G = 4.516e-39 #kpc^3/Msun/s^2  (all accels will be in kpc/s^2) #kpc/s^2 * kpc^2/Msun
-Rsun = 8.178 #kpc
-vlsr = 232.8 #km/s
+vlsr = 232.8 #km/s 
 kmtokpc = 3.241e-17
 rho_crit = 125.6 #critical density assuming LCDM, msun/kpc^3
 c = 9.716e-12 #kpc/s
@@ -442,8 +442,8 @@ class Hernquist(Model):
 		R = (x**2 + y**2)**0.5
 
 		pot = HernquistPotential(2*mtot*u.M_sun, rs*u.kpc)
-		az = evaluatezforces(pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
-		ar = evaluateRforces(pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
+		az = evaluatezforces(pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
+		ar = evaluateRforces(pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
 
 		ax = ar*x/R
 		ay = ar*y/R
@@ -611,7 +611,7 @@ class OortExpansion(Model):
 			if beta == 0.:
 				ar = vcirc**2/R*kmtokpc**2
 			else:
-				ar = (vcirc**2*kmtokpc**2)*((1./Rsun)**(2.*beta))*(R**((2.*beta)-1.))
+				ar = (vcirc**2*kmtokpc**2)*((1./r_sun)**(2.*beta))*(R**((2.*beta)-1.))
 
 		ax = -ar*x/R
 		ay = -ar*y/R
@@ -639,8 +639,8 @@ class Cross(Model):
 
 		#ar = (vlsr**2/R)*(1.+gamma*(z**2))*kmtokpc**2
 		ar = (vlsr**2/R)*kmtokpc**2 - gamma*z**2/R
-		#az = -alpha*z -(vlsr**2*np.log(R/Rsun)*2.*gamma*z)*kmtokpc**2
-		az = -( alpha*z - 2*gamma*z*np.log(R/Rsun) )
+		#az = -alpha*z -(vlsr**2*np.log(R/r_sun)*2.*gamma*z)*kmtokpc**2
+		az = -( alpha*z - 2*gamma*z*np.log(R/r_sun) )
 
 		ax = -ar*x/R
 		ay = -ar*y/R
@@ -796,7 +796,7 @@ class IsothermalDiskBeta(Model):
 		if beta == 0.:
 			ar = -v0**2/R*kmtokpc**2
 		else:
-			ar = -(v0*kmtokpc)**2*((1./Rsun)**(2.*beta))*(R**((2.*beta)-1.))
+			ar = -(v0*kmtokpc)**2*((1./r_sun)**(2.*beta))*(R**((2.*beta)-1.))
 
 		az = -2*(sigma*kmtokpc)**2/b * np.tanh((z-z0)/b)
 
@@ -834,8 +834,8 @@ class LocalExpansion(Model):
 		R = (x**2 + y**2)**0.5
 		phi = np.arctan2(y,x)
 
-		arsun = vlsr**2/Rsun*kmtokpc**2
-		ar = -(arsun+dadr*(R-Rsun))
+		arsun = vlsr**2/r_sun*kmtokpc**2
+		ar = -(arsun+dadr*(R-r_sun))
 		aphi = -dadphi*phi*R
 		az = -dadz*z
 
@@ -1060,13 +1060,13 @@ class GalpyPotential(Model):
 		R = (x**2 + y**2)**0.5
 
 		try:
-			az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value #convert from galpy coords
-			ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value
+			az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value #convert from galpy coords
+			ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value
 		except TypeError: #this happens in some potentials that require expensive integrals to compute, such as AnyAxisymmetricRazorThinDiskPotential, which cannot handle arrays
 			#iterate through input by input, in that case
 			#WARNING: This will be extremely slow
-			az = np.array([(evaluatezforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))]) 
-			ar = np.array([(evaluateRforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))])
+			az = np.array([(evaluatezforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))]) 
+			ar = np.array([(evaluateRforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))])
 
 		ax = ar*x/R
 		ay = ar*y/R
