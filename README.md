@@ -49,16 +49,17 @@ INSTALLATION
 
 ``` 
 import peebee.{peebee subpackage} 
-...
+<...>
 ```
 
 5. Once you are done making changes to the source code, put in a pull request to master
 
 6. Navigate to the directory where you cloned the repo, and then run
 
-``` python3 setup.py develop --uninstall ```
-
-``` pip3 install peebee ```
+```
+python3 setup.py develop --uninstall
+pip3 install peebee 
+```
 
 Your changes will not be available in the main peebee build until a new release comes out.
 
