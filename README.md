@@ -47,9 +47,10 @@ INSTALLATION
 
 4. To test your changes, insert import statements for the subpackages that you want to use in your .py files as you normally would:
 
-``` import peebee.{peebee subpackage} ```
-
-``` ... ```
+``` 
+import peebee.{peebee subpackage} 
+...
+```
 
 5. Once you are done making changes to the source code, put in a pull request to master
 
