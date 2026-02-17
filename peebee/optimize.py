@@ -10,7 +10,7 @@ import astropy.units as u
 
 from .transforms import convert_to_frame
 from .models import Model, CompositeModel
-from .glob import kpctocm, r_sun
+from .glob import r_sun
 from .noise import get_noise_model_likelihood
 
 #-----------------------------------------------------------------
@@ -126,6 +126,10 @@ class Fitter:
 			self.sun_pos = sun_pos
 		self.negative_mass = negative_mass
 		self.scale = scale
+
+	def set_noise_model(self, noise_model):
+		"""Set the noise model to use in the likelihood calculation."""
+		self.noise_model = noise_model
 	
 	@property
 	def best_fit_params(self): #XXX come back here
@@ -177,11 +181,11 @@ class Fitter:
 			model_alos *= -1
 		
 		# Calculate residual sum of squares
-		rss = 0.5 * np.sum((model_alos * kpctocm - self.data['alos'])**2 / (self.data['alos_err']**2)) * self.scale
+		rss = 0.5 * np.sum((model_alos - self.data['alos'])**2 / (self.data['alos_err']**2)) * self.scale
 		
 		# Add noise model contribution if specified
 		if self.noise_model != 'none':
-			resids = np.abs(model_alos * kpctocm - self.data['alos'])
+			resids = np.abs(model_alos - self.data['alos'])
 			noise_like = get_noise_model_likelihood(self.noise_model, resids, param_vector)
 			rss += noise_like
 		
@@ -344,7 +348,7 @@ class Fitter:
 			raise ValueError("Must set both model and data before evaluation")
 		
 		model_alos = self.model.alos(self.data['l'], self.data['b'], self.data['d'], sun_pos=self.sun_pos)
-		rss_val = 0.5 * np.sum((model_alos * kpctocm - self.data['alos'])**2 / (self.data['alos_err']**2))
+		rss_val = 0.5 * np.sum((model_alos - self.data['alos'])**2 / (self.data['alos_err']**2))
 		
 		n_data = len(self.data['alos']) 
 		n_params = self.model.nparams
@@ -360,8 +364,8 @@ class Fitter:
 			print(f'RSS: {rss_val}')
 			print(f'Reduced chi^2: {chi2}')
 			print(f'AIC: {aic}')
-			print(f'Model predictions: {model_alos * kpctocm}')
+			print(f'Model predictions: {model_alos}')
 			print(f'Observations: {self.data["alos"]}')
-			print(f'Residuals: {model_alos * kpctocm - self.data["alos"]}')
+			print(f'Residuals: {model_alos - self.data["alos"]}')
 		
 		return chi2, aic

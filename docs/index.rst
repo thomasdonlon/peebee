@@ -30,7 +30,8 @@ Content:
    models
    convenience
    transforms
-   fitter
-   sampler
+   optimize
+   sampling
+   noise
    
 .. :ref:`genindex`

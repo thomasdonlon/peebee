@@ -64,6 +64,7 @@ TODO
 
 MAJOR:
  - Add support for astropy units
+ - Development tests to pass before pushing a new version
 
 MINOR:
  - Agama potentials?
