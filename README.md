@@ -21,6 +21,8 @@ A non-exhaustive list of contents of the package is given below:
  - Ability to compute accelerations (including line-of-sight accelerations) for user-defined potentials 
  (including support for gala and galpy potentials)
  - Convenience functions for computing Pdots, including the Shklovskii effect, Relativistic orbital decay, Galactic accelerations, etc. 
+ - An extensive model framework to build potentials and compute accelerations (3D and line-of-sight) at arbitrary locations
+ - An optimization package to find the best-fit potential to a list of data
 
 INSTALLATION
 ========================================
