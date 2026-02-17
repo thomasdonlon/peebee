@@ -24,6 +24,10 @@ A non-exhaustive list of contents of the package is given below:
  - An extensive model framework to build potentials and compute accelerations (3D and line-of-sight) at arbitrary locations
  - An optimization package to find the best-fit potential to a list of data
 
+DOCUMENTATION
+========================================
+Read the docs here: https://peebee.readthedocs.io/en/latest/
+
 INSTALLATION
 ========================================
 
