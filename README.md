@@ -27,13 +27,13 @@ A non-exhaustive list of contents of the package is given below:
 INSTALLATION
 ========================================
 
-# For Users:
+## For Users:
 
 1. Open your terminal, and run
 
 > python3 -m pip install peebee
 
-# For Developers:
+## For Developers:
 
 1. Clone the peebee github repository
 
