@@ -12,19 +12,15 @@ reach out and ask that it be added to a future version of peebee.
 import numpy as np
 import astropy.units as u
 from galpy.potential import HernquistPotential, evaluatezforces, evaluateRforces
-from gala.potential.potential import MiyamotoNagaiPotential
-from gala.units import UnitSystem
 
 from .convenience import mags
 from .transforms import convert_to_frame
 from .glob import fix_arrays, r_sun
 
+#TODO: should be settable/grabbable globally
 #G = 4.301e-6 #kpc/Msun (km/s)^2
 G = 4.516e-39 #kpc^3/Msun/s^2  (all accels will be in kpc/s^2) #kpc/s^2 * kpc^2/Msun
-# Rsun = 8.0 #kpc
-# vlsr = 220 #km/s
-Rsun = 8.178 #kpc
-vlsr = 232.8 #km/s
+vlsr = 232.8 #km/s 
 kmtokpc = 3.241e-17
 rho_crit = 125.6 #critical density assuming LCDM, msun/kpc^3
 c = 9.716e-12 #kpc/s
@@ -56,17 +52,13 @@ class Model:
 		#track whether parameters are stored as regular or log10(param)
 		self._logparams = []
 
-		#track which parameters are disabled, i.e. they become the default
-		self._disabled_params = [] #list of ints, 0 if the ith par. is enabled, 1 if disabled
-		self._disabled_param_names = [] #list of strings, for convenience
-
 	@property #shows up as self.nparams
 	def nparams(self):
 		return len(self.param_names)
 
 	@property #shows up as self.n_opt_params
 	def n_opt_params(self): #count the number of non-None objects in self.param_defaults dict
-		return np.sum(np.array([not v is None for v in self.param_defaults])) #yeah it's gross but one liners are sick
+		return np.sum(np.array([not v is None for v in self.param_defaults]))
 
 	@property #shows up as self.n_req_params
 	def n_req_params(self):
@@ -78,7 +70,7 @@ class Model:
 			if not self.param_defaults[i] is None:
 				out += pname + ', '
 			else:
-				out += pname + '(opt.), ' 
+				out += pname + '(req.), ' 
 		return out.rstrip(', ')
 
 	#to be called when making a new model, after setting name, the param names, etc.
@@ -90,32 +82,22 @@ class Model:
 		else:
 			params = kwargs
 
-		self._disabled_params = np.zeros(len(self.param_names))
-
 		#auto-fill any missing values (if they have defaults)
-		while len(params) < len(self.param_names):
-			for i, pname in enumerate(self.param_names):
-				if not pname in params:
-					params[pname] = self.param_defaults[i]
-					self._disabled_params[i] = 1
-					self._disabled_param_names.append(pname)
-
-		#disable None values 
 		for i, pname in enumerate(self.param_names):
-			if params[pname] is None:
-				self._disabled_params[i] = 1
-				self._disabled_param_names.append(self.param_names[i])
+			if pname not in params:
+				if self.param_defaults[i] is not None:
+					params[pname] = self.param_defaults[i]
+				else:
+					raise ValueError(f"Required parameter '{pname}' not provided for {self.name} model")
 
 		self.set_params(params, ignore_name_check=False)
 		self._logparams = [0]*self.nparams
 
 	def set_params(self, params, ignore_name_check=False):
-
-		#set params from args and param names (as well as the self._param grabbables)
-
+		#set params from args and param names
+		
 		#assert that parameters have the correct length and that the names match
-		#the name matching thing might be overkill but it prevents some potential headaches -- if it ends up being too slow it could be supressed
-		assert self.nparams == len(params), f'{self.name} Model requires 0 or {self.n_req_params}-{self.nparams} arguments ({self.param_names_to_str()})'
+		assert self.nparams == len(params), f'{self.name} Model requires {self.nparams} arguments ({self.param_names_to_str()})'
 		if not ignore_name_check:
 			if not set(self.param_names) == set(params.keys()):
 				raise Exception(f'Name Mismatch(es) in params: {self.name} Model has parameters {set(self.param_names)} but {set(params.keys())} were provided.')
@@ -124,7 +106,47 @@ class Model:
 			self.params[self.param_names[i]] = params[self.param_names[i]]
 
 	def get_param_names(self):
-		return param_names
+		return self.param_names
+
+	def toggle_log_params(self, param_names):
+		"""
+		Toggle parameters to be stored/optimized in log10 space.
+		
+		:param_names: List of parameter names to toggle as log10
+		"""
+		if not isinstance(param_names, (list, tuple)):
+			param_names = [param_names]
+		
+		for param_name in param_names:
+			if param_name not in self.param_names:
+				raise ValueError(f"Parameter '{param_name}' not found in model {self.name}. Available: {self.param_names}")
+			
+			param_index = self.param_names.index(param_name)
+			
+			# Toggle the log status
+			if self._logparams[param_index] == 0:
+				# Convert to log10 space and store
+				current_value = self.params[param_name]
+				if current_value <= 0:
+					raise ValueError(f"Cannot take log of non-positive parameter '{param_name}' = {current_value}")
+				self.params[param_name] = np.log10(current_value)
+				self._logparams[param_index] = 1
+			else:
+				# Convert back to linear space and store
+				current_log_value = self.params[param_name]
+				self.params[param_name] = 10**current_log_value
+				self._logparams[param_index] = 0
+
+	def get_log_params(self):
+		"""
+		Get dictionary of parameter names and their log status.
+		
+		:return: Dictionary with parameter names as keys and boolean log status as values
+		"""
+		log_status = {}
+		for i, param_name in enumerate(self.param_names):
+			log_status[param_name] = bool(self._logparams[i])
+		return log_status
 
 	def accel(self, x, y, z, **kwargs): #should catch everything?
 		raise NotImplementedError('Uninitialized model has no acc() method. Try initializing an existing model or defining your own.')
@@ -243,28 +265,18 @@ class Model:
 
 	#model1 + model2 returns a new CompositeModel
 	def __add__(self, model2):
-		if isinstance(model2, CompositeModel): #if a CompositeModel is involved, use the CompositeModel __add__ method instead
+		if isinstance(model2, CompositeModel):
+			# If a CompositeModel is involved, use its __add__ method
 			return model2 + self
-		else: #neither Model is CompositeModel
-			out = CompositeModel()
-			out.name = f'{self.name}+{model2.name}'
-			out.models = [self] + [model2]
-
-		return out
-
-	def toggle_log_params(self, l, adjust_vals=True):
-		#l: list of ints to toggle (i.e. [0,2] would switch the toggle for params 0 and 2)
-		if type(l) is int:
-			self._logparams[l] = not(self._logparams[l])
-			if adjust_vals:
-				self.params[self.param_names[l]] = np.log10(self.params[self.param_names[l]])
 		else:
-			for i in l:
-				self._logparams[i] = not(self._logparams[i])
-				if adjust_vals:
-					self.params[self.param_names[i]] = np.log10(self.params[self.param_names[i]])
+			# Both are Model instances
+			out = CompositeModel()
+			out.add_model(self)
+			out.add_model(model2)
+			return out
 
 	def log_corr_params(self):
+		"""Get parameters in linear space for physics calculations."""
 		out = list(self.params.values())
 		for i in range(len(out)):
 			if self._logparams[i]:
@@ -280,64 +292,134 @@ class Model:
 
 class CompositeModel:
 
-	def __init__(self):
-		self.name = 'Uninitialized'
-		self.models = [] #tracks models that build up this Potential, this is the main way to access them
+	def __init__(self, models=None):
+		self.name = 'Composite'
+		self.models = {}  # Dictionary of models with unique names
+		
+		if models is not None:
+			if isinstance(models, dict):
+				# Direct dictionary of models
+				self.models = models.copy()
+				self.name = '+'.join(models.keys())
+			elif isinstance(models, list):
+				# Convert list to dictionary with auto-generated names
+				self._add_models_with_auto_names(models)
+			else:
+				# Single model
+				self.add_model(models)
 
-	@property #shows up as self.params, -> a list of dicts
+	def add_model(self, model, name=None):
+		"""Add a model to the composite with optional custom name."""
+		if name is None:
+			name = self._generate_unique_name(model.name)
+		self.models[name] = model
+		self._update_composite_name()
+		return name
+
+	def _add_models_with_auto_names(self, models):
+		"""Add list of models with automatically generated unique names."""
+		for model in models:
+			self.add_model(model)
+
+	def _generate_unique_name(self, base_name):
+		"""Generate unique name like 'NFW', 'NFW_2', 'NFW_3', etc."""
+		if base_name not in self.models:
+			return base_name
+		
+		counter = 2
+		while f"{base_name}_{counter}" in self.models:
+			counter += 1
+		return f"{base_name}_{counter}"
+
+	def _update_composite_name(self):
+		"""Update the composite model name based on component models."""
+		if self.models:
+			self.name = '+'.join(self.models.keys())
+		else:
+			self.name = 'Composite'
+
+	@property #shows up as self.params
 	def params(self):
-		out = []
-		for m in self.models:
-			out.append(m.params)
+		"""Return dictionary of all parameters with qualified names."""
+		out = {}
+		for model_name, model in self.models.items():
+			for param_name, param_value in model.params.items():
+				qualified_name = f"{model_name}.{param_name}"
+				out[qualified_name] = param_value
 		return out
 	
 	@property #shows up as self.param_names, -> a list of lists of strings
 	def param_names(self):
+		"""Return list of all qualified parameter names."""
 		out = []
-		for m in self.models:
-			out.append(m.param_names)
+		for model_name, model in self.models.items():
+			for param_name in model.param_names:
+				qualified_name = f"{model_name}.{param_name}"
+				out.append(qualified_name)
 		return out
 
-	@property #shows up as self.nparams, -> a list of ints
-	def nparams_list(self):
-		out = []
-		for m in self.models:
-			out.append(m.nparams)
-		return out
-
-	@property #shows up as self.nparams, -> int (sum of all component model nparams)
+	@property #shows up as self.nparams
 	def nparams(self):
-		out = 0
-		for m in self.models:
-			out += m.nparams
-		return out
+		"""Return total number of parameters across all models."""
+		return sum(m.nparams for m in self.models.values())
+
+	def get_model_names(self):
+		"""Return list of model names in the composite."""
+		return list(self.models.keys())
 
 	def set_params(self, params):
-		#set params for each of the models
-		#changing only one model's parameters must be done manually via self.models[i].set_params()
-		for i, m in enumerate(self.models):
-			m.set_params(params[i])
+		"""Set parameters using qualified names (model_name.param_name)."""
+		if not isinstance(params, dict):
+			raise TypeError("params must be a dictionary with qualified parameter names")
+			
+		# Handle qualified parameter names
+		for qualified_name, value in params.items():
+			if '.' in qualified_name:
+				model_name, param_name = qualified_name.split('.', 1)
+				if model_name in self.models:
+					self.models[model_name].params[param_name] = value
+				else:
+					raise ValueError(f"Model '{model_name}' not found in composite. Available models: {list(self.models.keys())}")
+			else:
+				# Try to find unqualified parameter in models
+				self._set_unqualified_param(qualified_name, value)
+
+	def _set_unqualified_param(self, param_name, value):
+		"""Try to set an unqualified parameter name in available models."""
+		matches = []
+		for model_name, model in self.models.items():
+			if param_name in model.param_names:
+				matches.append(model_name)
+		
+		if len(matches) == 1:
+			self.models[matches[0]].params[param_name] = value
+		elif len(matches) > 1:
+			raise ValueError(f"Ambiguous parameter name '{param_name}' found in models: {matches}. Use qualified names like 'model_name.{param_name}'")
+		else:
+			raise ValueError(f"Parameter '{param_name}' not found in any model")
+
+	def set_qualified_params(self, qualified_params):
+		"""Set parameters using a flat dictionary of qualified names."""
+		self.set_params(qualified_params)
 
 	@fix_arrays
 	@convert_to_frame('cart')
-	def accel(self, x, y, z, frame='cart', **kwargs): #should catch everything?
+	def accel(self, x, y, z, frame='cart', **kwargs):
 		if len(self.models) == 0:
 			raise NotImplementedError('Uninitialized CompositeModel has no Models.')
 		else:
-			#print()
-			try: #this try-except checks whether x, y, z are ints or array-like
+			try: #this checks whether x, y, z are ints or array-like
 				out = np.zeros((3, len(x)))
 			except TypeError:
 				out = np.zeros(3) 
-			for m in self.models:
-				#print(m.name)
-				#print(np.array(m.accel(x, y, z, **kwargs))*3.086e21)
-				out = out + m.accel(x, y, z, **kwargs)
+			
+			for model in self.models.values():
+				out = out + model.accel(x, y, z, **kwargs)
 			return out[0], out[1], out[2]
 
 	@fix_arrays
 	@convert_to_frame('gal')
-	def alos(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.), **kwargs): #includes solar accel!
+	def alos(self, l, b, d, frame='gal', sun_pos=(r_sun, 0., 0.), **kwargs):
 
 		#heliocentric, can't use frame='cart' because that's Galactocentric
 		x = -d*np.cos(l*np.pi/180)*np.cos(b*np.pi/180)
@@ -348,31 +430,69 @@ class CompositeModel:
 		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z, **kwargs)).T - alossun  #subtract off solar accel
 
 		los_vecs = (np.array([x, y, z]/d).T)
-		if len(np.shape(los_vecs)) > 1: #TODO: make this less clunky (requires allowing for array or non-array input)
+		if len(np.shape(los_vecs)) > 1:
 			los_accels = np.sum(accels*los_vecs, axis=1)
 		else:
 			los_accels = np.sum(accels*los_vecs)
 
 		return los_accels
 
-	#model1 + model2 returns a new composite potential model
-	#can be used with either Model or CompositeModel
 	def __add__(self, model2):
+		"""Add models together, supporting both Model and CompositeModel."""
 		out = CompositeModel()
-		out.name = f'{self.name}+{model2.name}'
+		
+		# Add all models from self
+		if isinstance(self, CompositeModel):
+			for name, model in self.models.items():
+				out.models[name] = model
+		else:
+			out.add_model(self)
 
+		# Add model2
 		if isinstance(model2, Model):
-			out.models = self.models + [model2]
+			out.add_model(model2)
 		elif isinstance(model2, CompositeModel):
-			out.models = self.models + model2.models
+			for name, model in model2.models.items():
+				# Ensure unique naming when combining composite models
+				new_name = out._generate_unique_name(name)
+				out.models[new_name] = model
 
+		out._update_composite_name()
 		return out
 
-	def toggle_log_params(self, aloi): #aloi is a list of (opt. lists of) ints with the same size as self.models
-		#(i.e. aloi = [0,[0,2]] would switch the toggle for param 0 in model 0, and params 0 & 2 in model 1)
-		# aloi = [0,[0,2]] and [[0],[0,2]] are equivalent, [0,[0,2]] and [0,0,2] are *not*
-		for l, m in zip(aloi, self.models):
-			m.toggle_log_params(l)
+	def toggle_log_params(self, qualified_param_names):
+		"""
+		Toggle log parameters using qualified names.
+		
+		:qualified_param_names: List of qualified parameter names like ["NFW.m_vir", "MND.mass"]
+		"""
+		if not isinstance(qualified_param_names, (list, tuple)):
+			qualified_param_names = [qualified_param_names]
+			
+		for qualified_name in qualified_param_names:
+			if '.' in qualified_name:
+				model_name, param_name = qualified_name.split('.', 1)
+				if model_name in self.models:
+					# Call the individual model's toggle_log_params method
+					self.models[model_name].toggle_log_params([param_name])
+				else:
+					raise ValueError(f"Model '{model_name}' not found in composite. Available models: {list(self.models.keys())}")
+			else:
+				raise ValueError(f"Parameter name '{qualified_name}' must be qualified (model_name.param_name)")
+
+	def get_log_params(self):
+		"""
+		Get dictionary of qualified parameter names and their log status.
+		
+		:return: Dictionary with qualified parameter names as keys and boolean log status as values
+		"""
+		log_status = {}
+		for model_name, model in self.models.items():
+			model_log_status = model.get_log_params()
+			for param_name, is_log in model_log_status.items():
+				qualified_name = f"{model_name}.{param_name}"
+				log_status[qualified_name] = is_log
+		return log_status
 
 #--------------------------
 # NFW
@@ -429,7 +549,7 @@ class NFW(Model):
 		return rho #Msun/kpc^3
 
 #--------------------------
-# Hernquist
+# Hernquist #TODO: should be hardcoded, rather than defaulting to a galpy potential
 #--------------------------
 class Hernquist(Model):
 
@@ -446,8 +566,8 @@ class Hernquist(Model):
 		R = (x**2 + y**2)**0.5
 
 		pot = HernquistPotential(2*mtot*u.M_sun, rs*u.kpc)
-		az = evaluatezforces(pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
-		ar = evaluateRforces(pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
+		az = evaluatezforces(pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
+		ar = evaluateRforces(pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
 
 		ax = ar*x/R
 		ay = ar*y/R
@@ -615,7 +735,7 @@ class OortExpansion(Model):
 			if beta == 0.:
 				ar = vcirc**2/R*kmtokpc**2
 			else:
-				ar = (vcirc**2*kmtokpc**2)*((1./Rsun)**(2.*beta))*(R**((2.*beta)-1.))
+				ar = (vcirc**2*kmtokpc**2)*((1./r_sun)**(2.*beta))*(R**((2.*beta)-1.))
 
 		ax = -ar*x/R
 		ay = -ar*y/R
@@ -643,8 +763,8 @@ class Cross(Model):
 
 		#ar = (vlsr**2/R)*(1.+gamma*(z**2))*kmtokpc**2
 		ar = (vlsr**2/R)*kmtokpc**2 - gamma*z**2/R
-		#az = -alpha*z -(vlsr**2*np.log(R/Rsun)*2.*gamma*z)*kmtokpc**2
-		az = -( alpha*z - 2*gamma*z*np.log(R/Rsun) )
+		#az = -alpha*z -(vlsr**2*np.log(R/r_sun)*2.*gamma*z)*kmtokpc**2
+		az = -( alpha*z - 2*gamma*z*np.log(R/r_sun) )
 
 		ax = -ar*x/R
 		ay = -ar*y/R
@@ -800,7 +920,7 @@ class IsothermalDiskBeta(Model):
 		if beta == 0.:
 			ar = -v0**2/R*kmtokpc**2
 		else:
-			ar = -(v0*kmtokpc)**2*((1./Rsun)**(2.*beta))*(R**((2.*beta)-1.))
+			ar = -(v0*kmtokpc)**2*((1./r_sun)**(2.*beta))*(R**((2.*beta)-1.))
 
 		az = -2*(sigma*kmtokpc)**2/b * np.tanh((z-z0)/b)
 
@@ -838,8 +958,8 @@ class LocalExpansion(Model):
 		R = (x**2 + y**2)**0.5
 		phi = np.arctan2(y,x)
 
-		arsun = vlsr**2/Rsun*kmtokpc**2
-		ar = -(arsun+dadr*(R-Rsun))
+		arsun = vlsr**2/r_sun*kmtokpc**2
+		ar = -(arsun+dadr*(R-r_sun))
 		aphi = -dadphi*phi*R
 		az = -dadz*z
 
@@ -1064,13 +1184,13 @@ class GalpyPotential(Model):
 		R = (x**2 + y**2)**0.5
 
 		try:
-			az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value #convert from galpy coords
-			ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value
+			az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value #convert from galpy coords
+			ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value
 		except TypeError: #this happens in some potentials that require expensive integrals to compute, such as AnyAxisymmetricRazorThinDiskPotential, which cannot handle arrays
 			#iterate through input by input, in that case
 			#WARNING: This will be extremely slow
-			az = np.array([(evaluatezforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))]) 
-			ar = np.array([(evaluateRforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=Rsun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))])
+			az = np.array([(evaluatezforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))]) 
+			ar = np.array([(evaluateRforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))])
 
 		ax = ar*x/R
 		ay = ar*y/R
