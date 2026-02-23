@@ -6,12 +6,12 @@ management using qualified parameter names.
 
 import numpy as np
 from scipy.optimize import minimize, differential_evolution
-import astropy.units as u 
+import traceback
 
 from .transforms import convert_to_frame
 from .models import Model, CompositeModel
 from .glob import r_sun
-from .noise import get_noise_model_likelihood
+from .noise import NoiseModel
 
 #-----------------------------------------------------------------
 # RESULTS CLASS
@@ -23,6 +23,7 @@ class FitResults:
 	def __init__(self):
 		self.success = False
 		self.best_fit_params = None
+		self.noise_params = None
 		self.uncertainties = None
 		self.reduced_chi2 = None
 		self.aic = None
@@ -33,6 +34,11 @@ class FitResults:
 
 	def __repr__(self):
 		if self.success:
+			# check if there is a noise model
+			if self.noise_params is not None:
+				#grab the noise parameters from the noise model
+				noise_param_str = ", ".join([f"noise.{name}={self.noise_params[name]:.3f}" for name in self.noise_params])
+				return f"FitResults(success=True, reduced_chi2={self.reduced_chi2:.3f}, aic={self.aic:.3f}, {noise_param_str})"
 			return f"FitResults(success=True, reduced_chi2={self.reduced_chi2:.3f}, aic={self.aic:.3f})"
 		else:
 			return f"FitResults(success=False, message='{self.message}')"
@@ -63,7 +69,7 @@ class Fitter:
 		self.sun_pos = (r_sun, 0., 0.)
 		self.negative_mass = False #TODO: remove the negative mass stuff
 		self.scale = 1.0 #TODO: remove the scale stuff, that's just for internal testing
-		self.noise_model = 'none'  # Default to no noise model
+		self.noise_model = None  # NoiseModel instance or None
 	
 	def set_model(self, model):
 		"""Set the gravitational potential model to fit."""
@@ -102,11 +108,12 @@ class Fitter:
 		Configure which parameters to optimize and their bounds.
 		
 		:param_bounds_dict: Dictionary of parameter names and bounds
-			Example: {"NFW.m_vir": (1e10, 1e14), "NFW.r_s": (5, 50)}
+			Example: {"NFW.m_vir": (1e10, 1e14), "NFW.r_s": (5, 50), "noise.sigma": (0.1, 10.0)}
+			Note: For log parameters, provide bounds in log space (e.g., m_vir: (10, 14) for log10(1e10) to log10(1e14))
 		"""
 		if self.model is None:
 			raise ValueError("Must set model before configuring parameters")
-			
+		
 		# Validate parameter names
 		available_params = set()
 		if isinstance(self.model, CompositeModel):
@@ -114,12 +121,18 @@ class Fitter:
 		else:
 			available_params = set(self.model.param_names)
 			
+		# Add noise parameters if noise model is set
+		if self.noise_model is not None:
+			for param_name in self.noise_model.param_names:
+				available_params.add(f"noise.{param_name}")
+				
 		for param_name in param_bounds_dict.keys():
 			if param_name not in available_params:
 				raise ValueError(f"Parameter '{param_name}' not found in model. Available: {sorted(available_params)}")
 		
+		# Store bounds as provided - user should provide in appropriate space
 		self.param_bounds = param_bounds_dict.copy()
-	
+
 	def set_optimization_options(self, sun_pos=None, negative_mass=False, scale=1.0):
 		"""Set additional optimization options."""
 		if sun_pos is not None:
@@ -128,7 +141,13 @@ class Fitter:
 		self.scale = scale
 
 	def set_noise_model(self, noise_model):
-		"""Set the noise model to use in the likelihood calculation."""
+		"""Set the noise model to use in the likelihood calculation.
+		
+		:noise_model: NoiseModel instance
+		"""
+		if noise_model is not None and not isinstance(noise_model, NoiseModel):
+			raise ValueError("noise_model must be a NoiseModel instance or None")
+		
 		self.noise_model = noise_model
 	
 	@property
@@ -143,29 +162,51 @@ class Fitter:
 		for i, param_name in enumerate(param_names):
 			param_dict[param_name] = param_vector[i]
 		return param_dict
+
+	def _has_noise_parameters(self):
+		if self.noise_model is not None and np.any([name.startswith('noise.') for name in self.param_bounds.keys()]):
+			return True
+		return False
 	
 	def _get_current_optimization_values(self):
 		"""Get current parameter values in optimization space (log space for log params)."""
 		# Use existing params property - CompositeModel already returns qualified names
 		opt_params = self.model.params
+
 		
-		# Extract only the parameters we're optimizing
+		# Extract ALL parameters we're optimizing (both model and noise parameters)
 		current_values = []
 		for param_name in self.param_bounds.keys():
-			if param_name in opt_params:
-				current_values.append(opt_params[param_name])
-			else:
-				# Handle case where qualified name might not match exactly
-				if isinstance(self.model, CompositeModel):
-					raise ValueError(f"Parameter '{param_name}' not found in model optimization parameters")
+			if param_name.startswith('noise.'):
+				# Handle noise parameters
+				if self.noise_model is not None:
+					noise_param_name = param_name.split('.', 1)[1]  # Remove 'noise.' prefix
+					if noise_param_name in self.noise_model.params:
+						current_values.append(self.noise_model.params[noise_param_name])
+					else:
+						raise ValueError(f"Noise parameter '{noise_param_name}' not found in noise model")
 				else:
-					# For single models, try without prefix
-					if '.' in param_name:
-						_, clean_name = param_name.split('.', 1)
-						if clean_name in opt_params:
-							current_values.append(opt_params[clean_name])
-						else:
-							raise ValueError(f"Parameter '{param_name}' not found in model")
+					raise ValueError(f"Noise parameter '{param_name}' specified but no noise model set")
+			else:
+				# Handle potential model parameters - return values in optimization space (same as bounds)
+				if param_name in opt_params:
+					param_value = opt_params[param_name]
+					# For single models, parameter value is already in the correct space (log or linear)
+					current_values.append(param_value)
+				else:
+					# Handle case where qualified name might not match exactly
+					if isinstance(self.model, CompositeModel):
+						raise ValueError(f"Parameter '{param_name}' not found in model optimization parameters")
+					else:
+						# For single models, try without prefix
+						if '.' in param_name:
+							_, clean_name = param_name.split('.', 1)
+							if clean_name in opt_params:
+								param_value = opt_params[clean_name]
+								# Parameter value is already in the correct space (log or linear)
+								current_values.append(param_value)
+							else:
+								raise ValueError(f"Parameter '{param_name}' not found in model")
 		return np.array(current_values)
 	
 	def _objective_function(self, param_vector):
@@ -184,28 +225,48 @@ class Fitter:
 		rss = 0.5 * np.sum((model_alos - self.data['alos'])**2 / (self.data['alos_err']**2)) * self.scale
 		
 		# Add noise model contribution if specified
-		if self.noise_model != 'none':
-			resids = np.abs(model_alos - self.data['alos'])
-			noise_like = get_noise_model_likelihood(self.noise_model, resids, param_vector)
-			rss += noise_like
+		if self.noise_model is not None:
+			residuals = np.abs(model_alos - self.data['alos'])
+			noise_likelihood = self.noise_model.likelihood(residuals)
+			rss += noise_likelihood
 		
 		return rss
 	
 	def _update_model_params(self, param_dict):
 		"""Update model parameters with qualified names using existing methods."""
-		if isinstance(self.model, CompositeModel):
-			self.model.set_qualified_params(param_dict)
-		else:
-			# For single models, strip any prefix if present and create clean param dict
-			clean_params = {}
-			for param_name, value in param_dict.items():
-				if '.' in param_name:
-					_, clean_name = param_name.split('.', 1)
-					clean_params[clean_name] = value
-				else:
-					clean_params[param_name] = value
-			
-			self.model.set_params(clean_params)
+		# Separate noise parameters from potential model parameters
+		noise_params = {}
+		model_params = {}
+		
+		for param_name, value in param_dict.items():
+			if param_name.startswith('noise.'):
+				# Extract noise parameter name without 'noise.' prefix
+				noise_param_name = param_name.split('.', 1)[1]
+				noise_params[noise_param_name] = value
+			else:
+				model_params[param_name] = value
+		
+		# Update potential model parameters - handle partial updates
+		if model_params:
+			if isinstance(self.model, CompositeModel):
+				# CompositeModel.set_params already handles partial updates with qualified names
+				self.model.set_params(model_params)
+			else:
+				# For single models, prepare clean parameter names and use update_params
+				clean_params = {}
+				for param_name, value in model_params.items():
+					if '.' in param_name:
+						_, clean_name = param_name.split('.', 1)
+						clean_params[clean_name] = value
+					else:
+						clean_params[param_name] = value
+				
+				# Use the new update_params method for partial updates
+				self.model.update_params(clean_params)
+		
+		# Update noise model parameters
+		if noise_params and self.noise_model is not None:
+			self.noise_model.set_params(noise_params)
 	
 	def optimize(self, method='differential_evolution', **kwargs):
 		"""
@@ -214,6 +275,8 @@ class Fitter:
 		:method: Optimization algorithm ('differential_evolution' or 'gradient_descent')
 		:kwargs: Additional arguments passed to scipy optimizer
 		"""
+		print(self.param_bounds)
+
 		if self.model is None:
 			raise ValueError("Must set model before optimizing")
 		if self.data is None:
@@ -281,11 +344,16 @@ class Fitter:
 					results.reduced_chi2 = np.nan
 					results.aic = np.nan
 					results.uncertainties = {name: np.nan for name in param_names}
+				
+				#get noise model information
+				if self.noise_model is not None:
+					results.noise_params = self.noise_model.params
 					
 			else:
 				results.message = f"Optimization failed: {scipy_result.message}"
 				
 		except Exception as e:
+			print(traceback.format_exc())
 			results.success = False
 			results.message = f"Optimization error: {str(e)}"
 		

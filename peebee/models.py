@@ -105,6 +105,21 @@ class Model:
 		for i in range(len(self.param_names)):
 			self.params[self.param_names[i]] = params[self.param_names[i]]
 
+	def update_params(self, params):
+		"""
+		Update a subset of model parameters by name.
+		
+		:params: Dictionary of parameter names and values to update
+		"""
+		if isinstance(params, dict):
+			for param_name, value in params.items():
+				if param_name in self.param_names:
+					self.params[param_name] = value
+				else:
+					raise ValueError(f"Parameter '{param_name}' not found in {self.name} model. Available: {self.param_names}")
+		else:
+			raise ValueError("params must be a dictionary for partial updates")
+
 	def get_param_names(self):
 		return self.param_names
 

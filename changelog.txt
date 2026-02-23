@@ -1,3 +1,10 @@
+v1.3.1
+ - fixed noise models actually adding and grabbing the correct parameters to the optimizer now
+ - reworked noise models, now class instances similar to models
+ - changed how noise models are initialized and added to Fitters
+ - changed examples to match new noise model rework
+ - debugged optimizer with log params and noise models
+
 v1.3.0
  - changed names of two modules: "fitter" -> "optimize", "sampler" -> "sampling"
  - revamped how optimization works; new procedure is streamlined for the user, and previous optimization code will no longer work. See /examples/optimize_example.py for a demonstration of the new framework

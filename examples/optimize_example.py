@@ -5,6 +5,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from peebee import optimize, models, sampling
+from peebee.noise import GaussianNoise
 
 #------------------------------
 # Generate mock data
@@ -46,19 +47,25 @@ model = models.NFW(m_vir=1e12, r_s=30.0) + models.MiyamotoNagaiDisk(m_tot=4e10, 
 model.toggle_log_params(['NFW.m_vir', 'Miyamoto-Nagai Disk.m_tot'])
 
 # Define the parameters to be optimized (the disk parameters)
-param_names = ['m_tot', 'a', 'b']
-param_bounds = [(9., 12.), (0.1, 10.0), (0.01, 1.0)]  # bounds in kpc and log10 solar masses
+param_names = ['m_tot', 'a', 'b', 'noise.sigma']
+param_bounds = [(9., 12.), (0.1, 10.0), (0.01, 1.0), (0.01, 10.)]  # bounds in kpc and log10 solar masses
 
 # Create an optimizer object and set the relevant information
 fitter = optimize.Fitter()
 fitter.set_model(model)
 fitter.set_data(x_mock, y_mock, z_mock, alos_mock_noisy, alos_mock_noise, frame='cart')
-fitter.set_noise_model('gaussian')
+
+#fit a noise model
+gaussian_noise = GaussianNoise(sigma=1.0)  # Initial value
+fitter.set_noise_model(gaussian_noise)
 
 #build the parameter dictionary that we will pass to the optimizer (this is just a mapping from the parameter names to the actual parameters in the model)
 param_dict = {}
 for name, bounds in zip(param_names, param_bounds):
-    param_dict[f"Miyamoto-Nagai Disk.{name}"] = bounds
+    if name.split('.')[0] != 'noise':
+        param_dict[f"Miyamoto-Nagai Disk.{name}"] = bounds
+    else:
+        param_dict[name] = bounds
 
 fitter.configure_params(param_dict)
 
@@ -70,7 +77,8 @@ results = fitter.results
 print(results)
 print("Optimized parameters (disk):")
 for name, value in results.best_fit_params.items():
-    print(f"{name}: {value:.3f}, correct value: {correct_disk_params[param_names.index(name.split('.')[1])]:.3f}")
+    if name.split('.')[0] != 'noise':
+        print(f"{name}: {value:.3f}±{results.uncertainties[name]:.3f}, correct value: {correct_disk_params[param_names.index(name.split('.')[1])]:.3f}")
 
 print('Done optimizing disk parameters.\n')
 
@@ -90,11 +98,14 @@ model.toggle_log_params(['NFW.m_vir', 'Miyamoto-Nagai Disk.m_tot'])
 fitter_all = optimize.Fitter()
 fitter_all.set_model(model)
 fitter_all.set_data(x_mock, y_mock, z_mock, alos_mock_noisy, alos_mock_noise, frame='cart')
-fitter_all.set_noise_model('gaussian')
+
+#fit a noise model
+gaussian_noise = GaussianNoise(sigma=1.0)  # Initial value
+fitter_all.set_noise_model(gaussian_noise)
 
 # Define all parameters to be optimized
-param_names_all = ['m_tot', 'a', 'b', 'm_vir', 'r_s']
-param_bounds_all = [(9., 12.), (0.1, 10.0), (0.01, 1.0), (10., 14.), (5., 50.)]
+param_names_all = ['m_tot', 'a', 'b', 'm_vir', 'r_s', 'noise.sigma']
+param_bounds_all = [(9., 12.), (0.1, 10.0), (0.01, 1.0), (10., 14.), (5., 50.), (0.01, 10.)]
 
 # Build the parameter dictionary for all parameters
 param_dict_all = {}
@@ -103,6 +114,8 @@ for name, bounds in zip(param_names_all, param_bounds_all):
         param_dict_all[f"Miyamoto-Nagai Disk.{name}"] = bounds
     elif name in ['m_vir', 'r_s']:
         param_dict_all[f"NFW.{name}"] = bounds
+    else:
+        param_dict_all[name] = bounds
 
 fitter_all.configure_params(param_dict_all)
 fitter_all.optimize(method='gradient_descent')
@@ -112,7 +125,8 @@ results = fitter_all.results
 print(results)
 print("Optimized parameters (all):")
 for name, value in results.best_fit_params.items():
-    print(f"{name}: {value:.3f}, correct value: {correct_params[param_names_all.index(name.split('.')[1])]:.3f}")
+    if name.split('.')[0] != 'noise':
+        print(f"{name}: {value:.3f}±{results.uncertainties[name]:.3f}, correct value: {correct_params[param_names_all.index(name.split('.')[1])]:.3f}")
 
 print('Done optimizing all parameters.\n')
 
@@ -138,11 +152,14 @@ model.toggle_log_params(['NFW.m_vir', 'Miyamoto-Nagai Disk.m_tot'])
 fitter_all = optimize.Fitter()
 fitter_all.set_model(model)
 fitter_all.set_data(x_mock, y_mock, z_mock, alos_mock_noisy, alos_mock_noise, frame='cart')
-fitter_all.set_noise_model('gaussian')
+
+#fit a noise model
+gaussian_noise = GaussianNoise(sigma=1.0)  # Initial value
+fitter_all.set_noise_model(gaussian_noise)
 
 # Define all parameters to be optimized
-param_names_all = ['m_tot', 'a', 'b', 'm_vir']
-param_bounds_all = [(9., 12.), (0.1, 10.0), (0.01, 1.0), (10., 14.)]
+param_names_all = ['m_tot', 'a', 'b', 'm_vir', 'noise.sigma']
+param_bounds_all = [(9., 12.), (0.1, 10.0), (0.01, 1.0), (10., 14.), (0.01, 10.)]
 
 # Build the parameter dictionary for all parameters
 param_dict_all = {}
@@ -151,6 +168,8 @@ for name, bounds in zip(param_names_all, param_bounds_all):
         param_dict_all[f"Miyamoto-Nagai Disk.{name}"] = bounds
     elif name in ['m_vir']:
         param_dict_all[f"NFW.{name}"] = bounds
+    else:
+        param_dict_all[name] = bounds
 
 fitter_all.configure_params(param_dict_all)
 init_guess_all = (10.5, 2.0, 0.5, 12.0)  # initial guess for all parameters (log10(m_tot), a, b, log10(m_vir), r_s)
@@ -161,6 +180,7 @@ results = fitter_all.results
 print(results)
 print("Optimized parameters (all):")
 for name, value in results.best_fit_params.items():
-    print(f"{name}: {value:.3f}, correct value: {correct_params[param_names_all.index(name.split('.')[1])]:.3f}")
+    if name.split('.')[0] != 'noise':
+        print(f"{name}: {value:.3f}±{results.uncertainties[name]:.3f}, correct value: {correct_params[param_names_all.index(name.split('.')[1])]:.3f}")
 
 print('Done optimizing parameters.')
