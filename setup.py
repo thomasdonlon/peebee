@@ -25,8 +25,6 @@ setuptools.setup(
         "matplotlib",
         "uncertainties",
         "astropy",
-        "scipy",
-        "gala",
-        "galpy"
+        "scipy"
         ],
 )
