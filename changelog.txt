@@ -1,3 +1,8 @@
+v1.3.2
+ - Removed gala and galpy as required packages, because people were running into problems installing them due to their complicated C requirements
+ - Models now tries to import these packages, and upon failure notifies the user
+ - Models which require gala or galpy will now fail to initialize if those packages aren't installed, and will produce an error message stating the problem. 
+
 v1.3.1
  - fixed noise models actually adding and grabbing the correct parameters to the optimizer now
  - reworked noise models, now class instances similar to models

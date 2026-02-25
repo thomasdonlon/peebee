@@ -23,6 +23,7 @@ class FitResults:
 	def __init__(self):
 		self.success = False
 		self.best_fit_params = None
+		self.residuals = None
 		self.noise_params = None
 		self.uncertainties = None
 		self.reduced_chi2 = None
@@ -348,6 +349,10 @@ class Fitter:
 				#get noise model information
 				if self.noise_model is not None:
 					results.noise_params = self.noise_model.params
+
+				#compute residuals for best fit
+				model_alos = self.model.alos(self.data['l'], self.data['b'], self.data['d'], sun_pos=self.sun_pos, frame='gal')
+				results.residuals = model_alos - self.data['alos']
 					
 			else:
 				results.message = f"Optimization failed: {scipy_result.message}"
@@ -408,14 +413,14 @@ class Fitter:
 			uncertainty_dict = {name: err for name, err in zip(param_names, errors)}
 			return uncertainty_dict
 		except np.linalg.LinAlgError:
-			raise ValueError("Hessian matrix is singular - cannot calculate uncertainties")
+			raise ValueError("Hessian matrix is singular")
 	
 	def evaluate_model(self, print_out=True):
 		"""Evaluate current model fit without optimization."""
 		if self.model is None or self.data is None:
 			raise ValueError("Must set both model and data before evaluation")
 		
-		model_alos = self.model.alos(self.data['l'], self.data['b'], self.data['d'], sun_pos=self.sun_pos)
+		model_alos = self.model.alos(self.data['l'], self.data['b'], self.data['d'], sun_pos=self.sun_pos, frame='gal')
 		rss_val = 0.5 * np.sum((model_alos - self.data['alos'])**2 / (self.data['alos_err']**2))
 		
 		n_data = len(self.data['alos']) 

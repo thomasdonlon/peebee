@@ -37,6 +37,8 @@ INSTALLATION
 
 > python3 -m pip install peebee
 
+Note that some potential models may only work if the `gala` and `galpy` packages are installed. However, peebee will install and run perfectly fine without these packages. 
+
 ## For Developers:
 
 1. Clone the peebee github repository

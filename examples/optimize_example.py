@@ -3,8 +3,7 @@
 # In a real use case, you would replace the mock data with your own data, and you may need to adjust the potential model and optimization settings accordingly.
 
 import numpy as np
-import matplotlib.pyplot as plt
-from peebee import optimize, models, sampling
+from peebee import optimize, sampling, models
 from peebee.noise import GaussianNoise
 
 #------------------------------

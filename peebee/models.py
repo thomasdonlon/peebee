@@ -11,11 +11,22 @@ reach out and ask that it be added to a future version of peebee.
 
 import numpy as np
 import astropy.units as u
-from galpy.potential import HernquistPotential, evaluatezforces, evaluateRforces
 
 from .convenience import mags
 from .transforms import convert_to_frame
 from .glob import fix_arrays, r_sun
+
+galpy_error = None
+try:
+	from galpy.potential import HernquistPotential, evaluatezforces, evaluateRforces
+except ImportError as galpy_error:
+	print("Warning: galpy is not installed. This may prevent the usage of specific models.")
+
+gala_error = None
+try:
+	import gala
+except ImportError as gala_error:
+	print("Warning: gala is not installed. This may prevent the usage of specific models.")
 
 #TODO: should be settable/grabbable globally
 #G = 4.301e-6 #kpc/Msun (km/s)^2
@@ -569,6 +580,10 @@ class NFW(Model):
 class Hernquist(Model):
 
 	def __init__(self, **kwargs):
+
+		if isinstance(galpy_error, ImportError):
+			raise ImportError("galpy is required to use the Hernquist model. Please install galpy to use this model.")
+
 		super().__init__()
 		self.name = 'Hernquist'
 		self.param_names = ['m_tot', 'r_s']
@@ -1157,6 +1172,10 @@ class GalaPotential(Model):
 
 	#pot: a (instantiated) gala potential object
 	def __init__(self, pot, **kwargs):
+
+		if isinstance(gala_error, ImportError):
+			raise ImportError("gala is required to use the GalaPotential model. Please install gala to use this model.")
+
 		super().__init__()
 		self.name = 'Gala Potential Instance'
 		self.param_names = []
@@ -1187,6 +1206,10 @@ class GalpyPotential(Model):
 
 	#pot: a (instantiated) gala potential object
 	def __init__(self, pot, **kwargs):
+
+		if isinstance(galpy_error, ImportError):
+			raise ImportError("galpy is required to use the GalpyPotential model. Please install galpy to use this model.")
+
 		super().__init__()
 		self.name = 'Galpy Potential Instance'
 		self.param_names = []
@@ -1199,13 +1222,13 @@ class GalpyPotential(Model):
 		R = (x**2 + y**2)**0.5
 
 		try:
-			az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value #convert from galpy coords
-			ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value
+			az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value # type: ignore #convert from galpy coords
+			ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value # type: ignore
 		except TypeError: #this happens in some potentials that require expensive integrals to compute, such as AnyAxisymmetricRazorThinDiskPotential, which cannot handle arrays
 			#iterate through input by input, in that case
 			#WARNING: This will be extremely slow
-			az = np.array([(evaluatezforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))]) 
-			ar = np.array([(evaluateRforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))])
+			az = np.array([(evaluatezforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))])  # type: ignore
+			ar = np.array([(evaluateRforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))]) # type: ignore
 
 		ax = ar*x/R
 		ay = ar*y/R
