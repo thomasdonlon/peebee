@@ -1,3 +1,6 @@
+v1.3.3
+ - Reworked Hernquist potential implementation so it no longer uses galpy
+
 v1.3.2
  - Removed gala and galpy as required packages, because people were running into problems installing them due to their complicated C requirements
  - Models now tries to import these packages, and upon failure notifies the user

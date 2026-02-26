@@ -593,14 +593,23 @@ class Hernquist(Model):
 	def accel(self, x, y, z, **kwargs):
 		mtot, rs = self.log_corr_params()
 
-		R = (x**2 + y**2)**0.5
+		#TODO: remove this later if it isn't a problem
+		# R = (x**2 + y**2)**0.5
 
-		pot = HernquistPotential(2*mtot*u.M_sun, rs*u.kpc)
-		az = evaluatezforces(pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
-		ar = evaluateRforces(pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
+		# pot = HernquistPotential(2*mtot*u.M_sun, rs*u.kpc)
+		# az = evaluatezforces(pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
+		# ar = evaluateRforces(pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s)*1.028e-30 #km/s/Myr to kpc/s^2
 
-		ax = ar*x/R
-		ay = ar*y/R
+		# ax = ar*x/R
+		# ay = ar*y/R
+
+		r = (x**2 + y**2 + z**2)**0.5
+
+		ar = -G*mtot/(r+rs)**2
+
+		ax = ar*x/r
+		ay = ar*y/r
+		az = ar*z/r
 
 		return ax, ay, az
 
