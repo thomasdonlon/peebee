@@ -16,17 +16,20 @@ from .convenience import mags
 from .transforms import convert_to_frame
 from .glob import fix_arrays, r_sun
 
+#checking imports to turn off features that use them if the user doesn't have the packages installed
+#-----------------------------------------------------
 galpy_error = None
 try:
 	from galpy.potential import evaluatezforces, evaluateRforces
 except ImportError as galpy_error:
-	print("Warning: galpy is not installed. This may prevent the usage of specific models.")
+	print("Warning: galpy is not installed. This will prevent the usage of galpy models.")
 
 gala_error = None
 try:
 	import gala
 except ImportError as gala_error:
-	print("Warning: gala is not installed. This may prevent the usage of specific models.")
+	print("Warning: gala is not installed. This will prevent the usage of gala models.")
+#-----------------------------------------------------
 
 #TODO: should be settable/grabbable globally
 #G = 4.301e-6 #kpc/Msun (km/s)^2
