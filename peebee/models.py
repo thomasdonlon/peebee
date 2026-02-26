@@ -18,7 +18,7 @@ from .glob import fix_arrays, r_sun
 
 galpy_error = None
 try:
-	from galpy.potential import HernquistPotential, evaluatezforces, evaluateRforces
+	from galpy.potential import evaluatezforces, evaluateRforces
 except ImportError as galpy_error:
 	print("Warning: galpy is not installed. This may prevent the usage of specific models.")
 
