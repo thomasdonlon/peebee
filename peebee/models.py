@@ -580,10 +580,6 @@ class NFW(Model):
 class Hernquist(Model):
 
 	def __init__(self, **kwargs):
-
-		if isinstance(galpy_error, ImportError):
-			raise ImportError("galpy is required to use the Hernquist model. Please install galpy to use this model.")
-
 		super().__init__()
 		self.name = 'Hernquist'
 		self.param_names = ['m_tot', 'r_s']
