@@ -51,12 +51,12 @@ mathjax3_config = {
 html_theme_options = {
     'fixed_sidebar': True,
     'description': "A python package merging Galactic dynamics with direct acceleration measurements",
-    'page_width': '70%',
+    'page_width': '90%',
     'sidebar_width': '20%',
     'github_button': True,
     'github_user': 'thomasdonlon',
     'github_repo': 'peebee',
-    'logo': './source/peebee_logo.png',
+    'logo': 'peebee_logo.png',
 }
 
 project = 'peebee'
