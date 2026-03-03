@@ -3,13 +3,15 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Peebee: Galactic Dynamics Meets Pulsar Accelerations
+Peebee
 ==================================
 
 .. sidebar-links::
    Index <https://peebee.readthedocs.io/en/latest/genindex.html>
    Tutorials <https://peebee.readthedocs.io/en/latest/tutorialsindex.html>
    GitHub Repository <https://github.com/thomasdonlon/peebee>
+
+.. rubric:: Galactic Dynamics Meets Pulsar Accelerations
 
 HEADS UP: This documentation is currently under heavy development. 
 
