@@ -56,13 +56,14 @@ html_theme_options = {
     'github_button': True,
     'github_user': 'thomasdonlon',
     'github_repo': 'peebee',
-    'logo': '../../../source/peebee_logo.png',
+    'logo': '_static/peebee_logo.png',
 }
 
 project = 'peebee'
 copyright = '2024, Tom Donlon'
 author = 'Tom Donlon'
 release = '1.3.3' #TODO: read this from a file
+html_logo = 'peebee_logo.png'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
