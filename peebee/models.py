@@ -12,7 +12,7 @@ reach out and ask that it be added to a future version of peebee.
 import numpy as np
 import astropy.units as u
 
-from .convenience import mags
+from .utils import mags
 from .transforms import convert_to_frame
 from .glob import fix_arrays, r_sun
 

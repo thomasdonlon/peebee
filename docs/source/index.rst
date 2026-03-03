@@ -8,17 +8,26 @@ Welcome to peebee's documentation!
 
 .. sidebar-links::
    Index <https://peebee.readthedocs.io/en/latest/genindex.html>
+   Tutorials <https://peebee.readthedocs.io/en/latest/tutorialsindex.html>
    GitHub Repository <https://github.com/thomasdonlon/peebee>
 
 HEADS UP: This documentation is currently under heavy development. 
-A lot of the material here is incomplete or potentially incorrect. Use at your own risk. 
 
 ----------------------------------
 
 Tutorials:
 ----------------------------------
 
-Coming soon!
+.. toctree::
+   :maxdepth: 1
+
+   calculating_accels
+   building_a_model
+   sampling_from_a_model
+   inference
+   noise_models
+
+.. :ref:`tutorialsindex`
 
 Content:
 ----------------------------------

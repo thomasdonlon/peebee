@@ -1,5 +1,14 @@
 v1.3.3
  - Reworked Hernquist potential implementation so it no longer uses galpy
+ - changed 'convenience' submodule to 'utils'
+ - added accels submodule, split off the orbital acceleration calculations that were previously in convenience -> utils
+ - renamed 'alos_obs' function -> 'alos_orb_gal'
+ - Added tutorial rst documents to the readthedocs
+ - removed 'intr_over_gr' and 'pbdot_intr', I don't like the "intrinsic" terminology for that, I think it's misleading. There wasn't any serious calculation being done there, anyways. 
+ - alos_orb_gal() no longer requires frame or coordinates, just distance
+ - fixed frame kwarg in dm_over_bary_alos()
+ - added spin acceleration functions: alos_spin_gal(), psdot_b()
+ - Added LK bias correction and plotting in utils, in the "remove_lk_bias()" function
 
 v1.3.2
  - Removed gala and galpy as required packages, because people were running into problems installing them due to their complicated C requirements
