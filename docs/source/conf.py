@@ -52,6 +52,10 @@ html_theme_options = {
     'fixed_sidebar': True,
     'description': "A python package merging Galactic dynamics with direct acceleration measurements",
     'page_width': '80%',
+    'sidebar_width': '20%',
+    'github_button': True,
+    'github_user': 'thomasdonlon',
+    'github_repo': 'peebee',
 }
 
 project = 'peebee'
@@ -78,6 +82,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'piccolo_theme'
+#html_theme = 'piccolo_theme'
 html_static_path = ['_static']
 
