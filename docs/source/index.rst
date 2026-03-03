@@ -37,10 +37,11 @@ Content:
    :caption: Submodules:
 
    models
-   convenience
+   utils
    transforms
    optimize
    sampling
    noise
+   accels
    
 .. :ref:`genindex`
