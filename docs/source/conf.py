@@ -51,7 +51,7 @@ mathjax3_config = {
 html_theme_options = {
     'fixed_sidebar': True,
     'description': "A python package merging Galactic dynamics with direct acceleration measurements",
-    'page_width': '80%',
+    'page_width': '70%',
     'sidebar_width': '20%',
     'github_button': True,
     'github_user': 'thomasdonlon',
