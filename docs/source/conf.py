@@ -56,7 +56,7 @@ html_theme_options = {
     'github_button': True,
     'github_user': 'thomasdonlon',
     'github_repo': 'peebee',
-    'logo': '../peebee_logo.png',
+    'logo': 'peebee_logo.png',
 }
 
 project = 'peebee'
