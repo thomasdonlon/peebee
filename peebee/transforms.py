@@ -78,7 +78,6 @@ def cart_to_gal(x, y, z, left_handed=True, sun_pos=(r_sun, 0., 0.)):
 def convert_to_frame(fr):
 	""":meta private:"""
 	#fr: the frame ('cart' or 'gal' are currently supported)
-	@wraps(fr)
 
 	def internal_decorator(func): #this is silly but required I think
 
