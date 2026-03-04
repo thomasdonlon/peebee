@@ -5,7 +5,7 @@ This includes acceleration calculations.
 """
 
 import numpy as np
-from functools import wraps
+import functools
 import matplotlib.pyplot as plt
 
 #TODO: Use astropy units to make conversions happen automatically
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # and turns everything into (numpy) arrays behind the scenes
 def fix_arrays(func):
     """:meta private:"""
-    @wraps(func)
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         #self.__doc__ = args[0].__doc__ #I removed this because it was breaking things, hopefully @wraps fixes the documentation?
 

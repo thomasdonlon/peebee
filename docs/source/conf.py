@@ -72,6 +72,7 @@ html_logo = 'peebee_logo.png'
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.napoleon',
               'sphinx_automodapi.automodapi',
+              'sphinx_automodapi.smart_resolver',
               'sphinx_math_dollar',
               'sphinx.ext.imgmath',
               'sphinx_toolbox.sidebar_links']
