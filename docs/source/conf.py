@@ -76,7 +76,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx_math_dollar',
               'sphinx.ext.imgmath',
               'sphinx_toolbox.sidebar_links']
-numpydoc_show_class_members = False
+#numpydoc_show_class_members = False
               
 #removed sphinx.ext.imgmath
 
