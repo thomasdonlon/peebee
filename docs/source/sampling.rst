@@ -1,2 +1,2 @@
-.. automodapi:: peebee.sampling
+.. automodule:: peebee.sampling
    :no-inheritance-diagram:
