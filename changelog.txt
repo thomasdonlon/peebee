@@ -1,3 +1,7 @@
+v1.3.4
+ - Updated lots of docstrings
+ - DamourTaylorPotential model now actually updates if you pass a vlsr kwarg
+
 v1.3.3
  - Reworked Hernquist potential implementation so it no longer uses galpy
  - changed 'convenience' submodule to 'utils'

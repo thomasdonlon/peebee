@@ -12,8 +12,22 @@ from .glob import r_sun, fix_arrays
 #generate a sample of n alos sources from a given model according to a spherically symmetric power law centered on COM and with index gamma
 #the relative likelihood of finding a source at distance r from the COM is then $/rho /propto (r/r_0)^\gamma$. 
 def sample_alos_sources_RPL(model, n, com, rscale, gamma, low_lim=0.01, up_lim=5, sun_pos=(r_sun, 0., 0.)):
-	#low_lim: sets the lower bound of the distribution at low_lim*rscale
-	#up_lim: sets the upper bound of the distribution at up_lim*rscale
+	"""
+	Generate a sample of n alos sources from a given model according to a spherically symmetric power law centered on center of mass (COM).
+	
+	The relative likelihood of finding a source at distance r from the COM follows rho ∝ (r/r_0)^gamma.
+	
+	:model (Model): Gravitational model to compute accelerations from
+	:n (int): Number of sample points to generate  
+	:com (tuple): Center of mass position (x, y, z) in kpc
+	:rscale (float): Scale radius for the power law distribution (kpc)
+	:gamma (float): Power law index for the radial distribution
+	:low_lim (float, optional): Lower bound of the distribution at low_lim*rscale. Default is 0.01.
+	:up_lim (float, optional): Upper bound of the distribution at up_lim*rscale. Default is 5.
+	:sun_pos (tuple, optional): Solar position in Galactocentric coordinates (kpc). Default is (8.0, 0.0, 0.0).
+	
+	:returns: sample_data (tuple) - Coordinates and accelerations: (x, y, z, alos) where coordinates are in kpc and alos in kpc/s^2
+	"""
 
 	#generate uniform random variables and convert them to a power law distribution
 	urv_uni = np.random.random(size=n)
@@ -33,8 +47,17 @@ def sample_alos_sources_RPL(model, n, com, rscale, gamma, low_lim=0.01, up_lim=5
 	return x, y, z, alos
 
 #generate a sample of n alos sources from a given model over a uniform volume 
-#bounds = ((x_min, x_max), (y_min, y_max), (z_min, z_max))
 def sample_alos_sources_uniform(model, n, bounds, sun_pos=(r_sun, 0., 0.)):
+	"""
+	Generate a sample of n alos sources from a given model over a uniform volume.
+	
+	:model (Model): Gravitational model to compute accelerations from
+	:n (int): Number of sample points to generate
+	:bounds (tuple): Coordinate bounds as ((x_min, x_max), (y_min, y_max), (z_min, z_max)) in kpc
+	:sun_pos (tuple, optional): Solar position in Galactocentric coordinates (kpc). Default is (8.0, 0.0, 0.0).
+	
+	:returns: sample_data (tuple) - Coordinates and accelerations: (x, y, z, alos) where coordinates are in kpc and alos in kpc/s^2
+	"""
 
 	#generate cartesian coordinates from uniform random variables
 	x = np.random.random(size=n)*(bounds[0][1] - bounds[0][0]) + bounds[0][0]
@@ -46,12 +69,19 @@ def sample_alos_sources_uniform(model, n, bounds, sun_pos=(r_sun, 0., 0.)):
 	return x, y, z, alos
 
 #perturb a set of values with a few different noise models
+#TODO: allow adding a noise model specifically here, rather than a set list of strings?
 @fix_arrays
 def perturb_value(value, value_unc, noise_model='gaussian', relative_err=False):
-	#value: array of values to be perturbed
-	#value_unc: either a single uncertainty value (float) or an array of uncertainties the same length as value
-	#noise_model: string specifying the noise model to use. 
-	#relative_err: if True, value_unc is treated as a fractional uncertainty rather than an absolute one
+	"""
+	Perturb a set of values with different noise models.
+	
+	:value (array_like): Array of values to be perturbed
+	:value_unc (array_like or float): Either a single uncertainty value (float) or an array of uncertainties the same length as value
+	:noise_model (str, optional): String specifying the noise model to use ('gaussian', 'lorentzian', 'uniform'). Default is 'gaussian'.
+	:relative_err (bool, optional): If True, value_unc is treated as a fractional uncertainty rather than an absolute one. Default is False.
+	
+	:returns: value_perturbed (array_like) - Perturbed values with noise added
+	"""
 
 	if relative_err:
 		noise_level = value_unc * np.abs(value)
@@ -77,11 +107,12 @@ def sample_sky_uniform(model, n, max_distance=3.0, sun_pos=(r_sun, 0., 0.)):
 	"""
 	Generate uniform random sample of line-of-sight accelerations from sky positions.
 	
-	:model: Gravitational model to compute accelerations from
-	:n: Number of sample points to generate
-	:max_distance: Maximum heliocentric distance in kpc 
-	:sun_pos: Solar position in Galactocentric coordinates (kpc)
-	:return: l (deg), b (deg), d (kpc), alos (kpc/s^2)
+	:model (Model): Gravitational model to compute accelerations from
+	:n (int): Number of sample points to generate
+	:max_distance (float, optional): Maximum heliocentric distance in kpc. Default is 3.0.
+	:sun_pos (tuple, optional): Solar position in Galactocentric coordinates (kpc). Default is (8.0, 0.0, 0.0).
+	
+	:returns: sky_sample (tuple) - Sky coordinates and accelerations: (l, b, d, alos) where l,b are in degrees, d in kpc, and alos in kpc/s^2
 	"""
 	# Generate uniform random positions on unit sphere
 	# Use method from Muller et al. for uniform distribution

@@ -63,7 +63,15 @@ def fix_arrays(func):
 
 #I can never be bothered to write out a pandas df or whatever so I wrote this instead
 def write_to_csv(path, *args, titles=None):
-	"""text autodoc"""
+	"""
+	Write arrays to CSV file with optional column headers.
+	
+	:path (str): Output file path
+	:*args (array_like): Variable number of arrays to write as columns
+	:titles (list, optional): Column header names. Default is None.
+	
+	:returns: None
+	"""
 
 	if len(args) == 0: 
 		raise Exception("Have to provide at least one array-like in addition to the file path")
@@ -93,11 +101,26 @@ def write_to_csv(path, *args, titles=None):
 
 #helper function for getting array-wise magnitudes rather than writing things out
 def mags(arr):
+	"""
+	Compute magnitudes of vectors in an array.
+	
+	:arr (array_like): Input array of vectors (..., N) where last axis contains vector components
+	
+	:returns: magnitudes (array_like) - Vector magnitudes
+	"""
 	return np.sum(arr**2, axis=-1)**0.5
 
 #helper function for getting array-wise dot products
 def dot(arr1, arr2):  #vecsi are Nx3 arrays
-    return np.sum(arr1*arr2, axis=-1)
+	"""
+	Compute element-wise dot products between arrays of vectors.
+	
+	:arr1 (array_like): First array of vectors (..., N)
+	:arr2 (array_like): Second array of vectors (..., N)
+	
+	:returns: dot_products (array_like) - Element-wise dot products
+	"""
+	return np.sum(arr1*arr2, axis=-1)
 
 #--------------------------------------------------------------------------------
 # Pulsar Related Functions
@@ -125,15 +148,15 @@ def remove_lk_bias(psr_l, psr_b, flux, px, px_err, n_bins=500, plot=False):
 	"""
 	Compute the Lutz-Kelker bias correction for a pulsar, according to the method from Verbiest, Lorimer, & McLaughlin (2010).
 
-	:psr_l: Galactic longitude (degrees)
-	:psr_b: Galactic latitude (degrees)
-	:flux: Integrated flux density (mJy, typically at 1.4 GHz)
-	:px: Measured parallax (mas)
-	:px_err: Measured parallax error (mas)
-	:n_bins: Number of bins in the parallax grid (optional, default value = 500). Higher values give more precise results but take longer to compute. 500 bins is accurate to a high level already, and still pretty fast.
-	:plot: If True, also generates plots of the priors and parallax distributions for visualization (optional, default value = False).
+		:psr_l (float): Galactic longitude (degrees)
+		:psr_b (float): Galactic latitude (degrees)
+		:flux (float): Integrated flux density (mJy, typically at 1.4 GHz)
+		:px (float): Measured parallax (mas)
+		:px_err (float): Measured parallax error (mas)
+		:n_bins (int, optional): Number of bins in the parallax grid. Default is 500. Higher values give more precise results but take longer to compute.
+		:plot (bool, optional): If True, generates plots of the priors and parallax distributions for visualization. Default is False.
 
-	Returns: corrected parallax (mas), lower error (mas), upper error (mas)
+	:returns: lk_correction (tuple) - Corrected parallax (mas), lower error (mas), upper error (mas)
 	"""
       
 	if px <= 0 or px_err <= 0:

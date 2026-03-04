@@ -14,10 +14,14 @@ def gal_to_cart(l, b, r, left_handed=True, rad=False, sun_pos=(r_sun, 0., 0.)):
 	"""
 	Transform from a heliocentric Galactic coordinate system to a Galactocentric Cartesian coordinate system.
 
-	:l: Galactic longitude (deg)
-	:b: Galactic latitude (deg)
-	:d: Heliocentric distance (kpc)
+	:l (array_like): Galactic longitude (deg)
+	:b (array_like): Galactic latitude (deg)
+	:r (array_like): Heliocentric distance (kpc)
+	:left_handed (bool, optional): Use left-handed coordinate system. Default is True.
+	:rad (bool, optional): Input angles are in radians if True. Default is False (degrees).
+	:sun_pos (tuple, optional): Solar position in Galactocentric coordinates (X,Y,Z) in kpc. Default is (8.0, 0.0, 0.0).
 
+	:returns: cartesian_coords (tuple) - Galactocentric Cartesian coordinates (x, y, z) in kpc
 	"""
 
 	if not rad:
@@ -38,12 +42,15 @@ def gal_to_cart(l, b, r, left_handed=True, rad=False, sun_pos=(r_sun, 0., 0.)):
 @fix_arrays
 def cart_to_gal(x, y, z, left_handed=True, sun_pos=(r_sun, 0., 0.)):
 	"""
-	Transform from a heliocentric Galactic coordinate system to a Galactocentric Cartesian coordinate system.
+	Transform from a Galactocentric Cartesian coordinate system to a heliocentric Galactic coordinate system.
 
-	:l: Galactic longitude (deg)
-	:b: Galactic latitude (deg)
-	:d: Heliocentric distance (kpc)
+	:x (array_like): Galactocentric X coordinate (kpc)
+	:y (array_like): Galactocentric Y coordinate (kpc)
+	:z (array_like): Galactocentric Z coordinate (kpc)
+	:left_handed (bool, optional): Use left-handed coordinate system. Default is True.
+	:sun_pos (tuple, optional): Solar position in Galactocentric coordinates (X,Y,Z) in kpc. Default is (8.0, 0.0, 0.0).
 
+	:returns: galactic_coords (tuple) - Heliocentric Galactic coordinates (l, b, r) where l,b are in degrees and r is in kpc
 	"""
 
 	if left_handed:

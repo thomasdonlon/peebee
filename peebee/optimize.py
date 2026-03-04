@@ -18,9 +18,20 @@ from .noise import NoiseModel
 #-----------------------------------------------------------------
 
 class FitResults:
-	"""Container for optimization results."""
+	"""
+	Container for optimization results.
+	
+	Stores the results from a model fitting optimization including
+	best-fit parameters, uncertainties, goodness-of-fit statistics,
+	and diagnostic information.
+	"""
 	
 	def __init__(self):
+		"""
+		Initialize empty FitResults container.
+		
+		:returns: None
+		"""
 		self.success = False
 		self.best_fit_params = None
 		self.residuals = None
@@ -34,6 +45,11 @@ class FitResults:
 		self.message = ""
 
 	def __repr__(self):
+		"""
+		Return string representation of fit results.
+		
+		:returns: repr_str (str) - Summary of fit results
+		"""
 		if self.success:
 			# check if there is a noise model
 			if self.noise_params is not None:
@@ -52,14 +68,23 @@ class Fitter:
 	"""
 	Object-oriented fitter for gravitational potential models.
 	
+	Provides a clean interface for fitting gravitational models to pulsar
+	acceleration data using various optimization algorithms.
+	
 	Usage:
-		fitter = Fitter(model)
+		fitter = Fitter()
+		fitter.set_model(model)
 		fitter.set_data(l, b, d, alos, alos_err)
 		fitter.configure_params({"NFW.m_vir": (1e10, 1e14), "NFW.r_s": (5, 50)})
 		result = fitter.optimize(method='differential_evolution')
 	"""
 	
 	def __init__(self):
+		"""
+		Initialize a new Fitter instance.
+		
+		:returns: None
+		"""
 		self.model = None
 		self.data = None
 		self.param_bounds = {}
@@ -73,7 +98,13 @@ class Fitter:
 		self.noise_model = None  # NoiseModel instance or None
 	
 	def set_model(self, model):
-		"""Set the gravitational potential model to fit."""
+		"""
+		Set the gravitational potential model to fit.
+		
+		:model (Model or CompositeModel): The gravitational potential model to optimize
+		
+		:returns: None
+		"""
 		self.model = model
 		# Clear any existing configuration that might be invalid
 		self.param_bounds = {}
@@ -85,13 +116,15 @@ class Fitter:
 		"""
 		Set the pulsar acceleration data.
 		
-		:l: Galactic longitude (deg) 
-		:b: Galactic latitude (deg)
-		:d: Heliocentric distance (kpc)
-		:alos: Observed line-of-sight acceleration (cm/s^2)
-		:alos_err: Uncertainty in line-of-sight acceleration (cm/s^2) 
-		:frame: Coordinate frame ('gal', 'cart', 'icrs', 'ecl')
-		:sun_pos: Solar position (kpc) [optional, uses default if not provided]
+		:l (array_like): Galactic longitude (deg)
+		:b (array_like): Galactic latitude (deg)
+		:d (array_like): Heliocentric distance (kpc)
+		:alos (array_like): Observed line-of-sight acceleration (kpc/s^2)
+		:alos_err (array_like): Uncertainty in line-of-sight acceleration (kpc/s^2)
+		:frame (str, optional): Coordinate frame ('gal', 'cart', 'icrs', 'ecl'). Default is 'gal'.
+		:sun_pos (tuple, optional): Solar position (kpc). Uses default if not provided.
+		
+		:returns: None
 		"""
 		if sun_pos is not None:
 			self.sun_pos = sun_pos
@@ -108,9 +141,11 @@ class Fitter:
 		"""
 		Configure which parameters to optimize and their bounds.
 		
-		:param_bounds_dict: Dictionary of parameter names and bounds
+		:param_bounds_dict (dict): Dictionary of parameter names and bounds.
 			Example: {"NFW.m_vir": (1e10, 1e14), "NFW.r_s": (5, 50), "noise.sigma": (0.1, 10.0)}
 			Note: For log parameters, provide bounds in log space (e.g., m_vir: (10, 14) for log10(1e10) to log10(1e14))
+		
+		:returns: None
 		"""
 		if self.model is None:
 			raise ValueError("Must set model before configuring parameters")
@@ -135,16 +170,27 @@ class Fitter:
 		self.param_bounds = param_bounds_dict.copy()
 
 	def set_optimization_options(self, sun_pos=None, negative_mass=False, scale=1.0):
-		"""Set additional optimization options."""
+		"""
+		Set additional optimization options.
+		
+		:sun_pos (tuple, optional): Solar position override (kpc)
+		:negative_mass (bool, optional): Allow negative mass values. Default is False.
+		:scale (float, optional): Scaling factor for optimization. Default is 1.0.
+		
+		:returns: None
+		"""
 		if sun_pos is not None:
 			self.sun_pos = sun_pos
 		self.negative_mass = negative_mass
 		self.scale = scale
 
 	def set_noise_model(self, noise_model):
-		"""Set the noise model to use in the likelihood calculation.
+		"""
+		Set the noise model to use in the likelihood calculation.
 		
-		:noise_model: NoiseModel instance
+		:noise_model (NoiseModel or None): NoiseModel instance for likelihood calculation
+		
+		:returns: None
 		"""
 		if noise_model is not None and not isinstance(noise_model, NoiseModel):
 			raise ValueError("noise_model must be a NoiseModel instance or None")
@@ -234,7 +280,13 @@ class Fitter:
 		return rss
 	
 	def _update_model_params(self, param_dict):
-		"""Update model parameters with qualified names using existing methods."""
+		"""
+		Update model parameters with qualified names using existing methods.
+		
+		:param_dict (dict): Dictionary of parameter names and values
+		
+		:returns: None
+		"""
 		# Separate noise parameters from potential model parameters
 		noise_params = {}
 		model_params = {}
@@ -273,8 +325,10 @@ class Fitter:
 		"""
 		Run optimization to fit model parameters.
 		
-		:method: Optimization algorithm ('differential_evolution' or 'gradient_descent')
-		:kwargs: Additional arguments passed to scipy optimizer
+		:method (str, optional): Optimization algorithm ('differential_evolution' or 'gradient_descent'). Default is 'differential_evolution'.
+		:**kwargs: Additional arguments passed to scipy optimizer
+		
+		:returns: results (FitResults) - Container with optimization results and fit statistics
 		"""
 		print(self.param_bounds)
 
@@ -416,7 +470,13 @@ class Fitter:
 			raise ValueError("Hessian matrix is singular")
 	
 	def evaluate_model(self, print_out=True):
-		"""Evaluate current model fit without optimization."""
+		"""
+		Evaluate current model fit without optimization.
+		
+		:print_out (bool, optional): Whether to print evaluation results. Default is True.
+		
+		:returns: evaluation_dict (dict) - Dictionary containing model evaluation metrics
+		"""
 		if self.model is None or self.data is None:
 			raise ValueError("Must set both model and data before evaluation")
 		

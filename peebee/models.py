@@ -8,6 +8,7 @@ reach out and ask that it be added to a future version of peebee.
 #TODO: implement astropy units in a way that ensures proper units are always output
 #TODO: Allow single inputs as well as arrays (currently only arrays supported)
 #TODO: all accel functions should have the fix_arrays and convert_to_frame() decorators
+#TODO: Each model goes in a separate file in a /models folder? Would make everything a lot cleaner.
 
 import numpy as np
 import astropy.units as u
@@ -57,8 +58,19 @@ c = 9.716e-12 #kpc/s
 #===================================================================
 
 class Model:
+	"""
+	Base class for gravitational potential models.
+	
+	Provides the foundation for all gravitational acceleration models in peebee.
+	Subclasses must implement the `accel` method to define the specific physics.
+	"""
 
 	def __init__(self):
+		"""
+		Initialize a new Model instance.
+		
+		:returns: None
+		"""
 		self.name = 'Uninitialized'
 		self.params = dict()
 		self.param_names = []
@@ -68,17 +80,37 @@ class Model:
 
 	@property #shows up as self.nparams
 	def nparams(self):
+		"""
+		Get the total number of model parameters.
+		
+		:returns: nparams (int) - Total number of parameters
+		"""
 		return len(self.param_names)
 
 	@property #shows up as self.n_opt_params
 	def n_opt_params(self): #count the number of non-None objects in self.param_defaults dict
+		"""
+		Get the number of optional parameters (those with default values).
+		
+		:returns: n_opt_params (int) - Number of optional parameters
+		"""
 		return np.sum(np.array([not v is None for v in self.param_defaults]))
 
 	@property #shows up as self.n_req_params
 	def n_req_params(self):
+		"""
+		Get the number of required parameters (those without default values).
+		
+		:returns: n_req_params (int) - Number of required parameters
+		"""
 		return self.nparams - self.n_opt_params
 
 	def param_names_to_str(self):
+		"""
+		Generate a string representation of parameter names with required/optional status.
+		
+		:returns: param_str (str) - Comma-separated parameter names with '(req.)' for required params
+		"""
 		out = ''
 		for i, pname in enumerate(self.param_names):
 			if not self.param_defaults[i] is None:
@@ -108,7 +140,14 @@ class Model:
 		self._logparams = [0]*self.nparams
 
 	def set_params(self, params, ignore_name_check=False):
-		#set params from args and param names
+		"""
+		Set all model parameters from a dictionary.
+		
+		:params (dict): Dictionary of parameter names and values
+		:ignore_name_check (bool, optional): Skip parameter name validation. Default is False.
+		
+		:returns: None
+		"""
 		
 		#assert that parameters have the correct length and that the names match
 		assert self.nparams == len(params), f'{self.name} Model requires {self.nparams} arguments ({self.param_names_to_str()})'
@@ -123,7 +162,9 @@ class Model:
 		"""
 		Update a subset of model parameters by name.
 		
-		:params: Dictionary of parameter names and values to update
+		:params (dict): Dictionary of parameter names and values to update
+		
+		:returns: None
 		"""
 		if isinstance(params, dict):
 			for param_name, value in params.items():
@@ -135,13 +176,20 @@ class Model:
 			raise ValueError("params must be a dictionary for partial updates")
 
 	def get_param_names(self):
+		"""
+		Get list of all parameter names.
+		
+		:returns: param_names (list) - List of parameter name strings
+		"""
 		return self.param_names
 
 	def toggle_log_params(self, param_names):
 		"""
 		Toggle parameters to be stored/optimized in log10 space.
 		
-		:param_names: List of parameter names to toggle as log10
+		:param_names (list or str): List of parameter names to toggle as log10, or single parameter name
+		
+		:returns: None
 		"""
 		if not isinstance(param_names, (list, tuple)):
 			param_names = [param_names]
@@ -170,7 +218,7 @@ class Model:
 		"""
 		Get dictionary of parameter names and their log status.
 		
-		:return: Dictionary with parameter names as keys and boolean log status as values
+		:returns: log_status (dict) - Dictionary with parameter names as keys and boolean log status as values
 		"""
 		log_status = {}
 		for i, param_name in enumerate(self.param_names):
@@ -178,6 +226,16 @@ class Model:
 		return log_status
 
 	def accel(self, x, y, z, **kwargs): #should catch everything?
+		"""
+		Compute the acceleration at given coordinates. Must be implemented by subclasses.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc) 
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments specific to the model
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		raise NotImplementedError('Uninitialized model has no acc() method. Try initializing an existing model or defining your own.')
 
 	@fix_arrays
@@ -186,10 +244,15 @@ class Model:
 		"""
 		Compute the line-of-sight component of the acceleration. This is acceleration relative to the Sun. 
 
-		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
-		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
-		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
+		:l (array_like): Galactic longitude (deg) or X coordinate (kpc) if frame='cart'
+		:b (array_like): Galactic latitude (deg) or Y coordinate (kpc) if frame='cart'
+		:d (array_like): Heliocentric distance (kpc) or Z coordinate (kpc) if frame='cart'
+		:frame (str, optional): Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d). Default is 'gal'.
+		:d_err (array_like, optional): Distance uncertainty for error propagation (kpc)
+		:sun_pos (tuple, optional): The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z) in kpc. Default is (8.0, 0.0, 0.0).
+		:**kwargs: Additional keyword arguments
 
+		:returns: los_accels (array_like) - Line-of-sight acceleration component relative to the Sun (kpc/s^2). If d_err provided, returns tuple (los_accels, los_accels_err).
 		"""
 
 		#heliocentric, can't use frame='cart' because that's Galactocentric
@@ -219,11 +282,14 @@ class Model:
 		"""
 		Compute the magnitude of the tangential component of the acceleration, i.e. the "proper" acceleration. This is acceleration relative to the Sun, perpendicular to our line of sight. 
 
-		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
-		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
-		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
-		:angular: [optional, default value = True] Output is an angular acceleration if True, or a linear acceleration if False.
+		:l (array_like): Galactic longitude (deg) or X coordinate (kpc) if frame='cart'
+		:b (array_like): Galactic latitude (deg) or Y coordinate (kpc) if frame='cart'
+		:d (array_like): Heliocentric distance (kpc) or Z coordinate (kpc) if frame='cart'
+		:frame (str, optional): Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d). Default is 'gal'.
+		:sun_pos (tuple, optional): The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z) in kpc. Default is (8.0, 0.0, 0.0).
+		:angular (bool, optional): Output is an angular acceleration if True, or a linear acceleration if False. Default is True.
 
+		:returns: tan_accels (array_like) - Magnitude of tangential acceleration component (kpc/s^2 or rad/s^2)
 		"""
 
 		#heliocentric, can't use frame='cart' because that's Galactocentric
@@ -250,11 +316,17 @@ class Model:
 		"""
 		Compute the 3-dimensional heliocentric acceleration. This is acceleration relative to the Sun.
 
-		:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
-		:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
-		:sun_pos: [optional, default value = (8.0, 0.0, 0.0) kpc] The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z).
-		:return: $a _ \\mathrm{los}$ (acceleration along our line of sight); $a _ \\mathrm{l}$ (acceleration in the Galactic longitude direction); $a _ \\mathrm{b}$ (acceleration in the Galactic latitude direction), (kpc/s$^2$)
-		:rtype: array-like (float,); array-like (float,); array-like (float,)
+		:l (array_like): Galactic longitude (deg) or X coordinate (kpc) if frame='cart'
+		:b (array_like): Galactic latitude (deg) or Y coordinate (kpc) if frame='cart'
+		:d (array_like): Heliocentric distance (kpc) or Z coordinate (kpc) if frame='cart'
+		:frame (str, optional): Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d). Default is 'gal'.
+		:sun_pos (tuple, optional): The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z) in kpc. Default is (8.0, 0.0, 0.0).
+		:angular (bool, optional): Output is an angular acceleration if True, or a linear acceleration if False. Default is True.
+
+		:returns: acceleration_components (tuple) - Three-component heliocentric acceleration:
+			- alos (array_like): Acceleration along line of sight (kpc/s^2)
+			- atan_l (array_like): Acceleration in Galactic longitude direction (kpc/s^2 or rad/s^2)
+			- atan_b (array_like): Acceleration in Galactic latitude direction (kpc/s^2 or rad/s^2)
 		"""
 
 		l *= np.pi/180
@@ -305,7 +377,11 @@ class Model:
 			return out
 
 	def log_corr_params(self):
-		"""Get parameters in linear space for physics calculations."""
+		"""
+		Get parameters in linear space for physics calculations.
+		
+		:returns: params_linear (list) - Parameter values converted from log10 space to linear space where applicable
+		"""
 		out = list(self.params.values())
 		for i in range(len(out)):
 			if self._logparams[i]:
@@ -314,6 +390,13 @@ class Model:
 
 	#helper function to make it easier to get/assign default params
 	def get_param_default(self, param_name):
+		"""
+		Get the default value for a specific parameter.
+		
+		:param_name (str): Name of the parameter
+		
+		:returns: default_value (float or None) - Default value for the parameter, or None if no default
+		"""
 		i = self.param_names.index(param_name)
 		return self.param_defaults[i]
 
@@ -527,9 +610,25 @@ class CompositeModel:
 # NFW
 #--------------------------
 class NFW(Model):
+	"""
+	Navarro-Frenk-White (NFW) dark matter halo profile.
+	
+	Implements the NFW density profile commonly used for dark matter halos.
+	Supports optional flattening parameter q for oblate halos.
+	"""
 
 	#rho0 = Msun/kpc^3, rs = kpc
 	def __init__(self, **kwargs):
+		"""
+		Initialize NFW halo model.
+		
+		:m_vir (float): Virial mass (M_sun)
+		:r_s (float): Scale radius (kpc) 
+		:q (float, optional): Flattening parameter for oblate halo. Default is 1.0 (spherical).
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'NFW'
 		self.param_names = ['m_vir', 'r_s', 'q']
@@ -537,6 +636,16 @@ class NFW(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute NFW halo acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		mvir, rs, q = self.log_corr_params()
 
 		#TODO: remove this later if it isn't a problem
@@ -563,7 +672,17 @@ class NFW(Model):
 
 		return ax, ay, az
 
-	def density(self, x, y, z, **kwargs): 
+	def density(self, x, y, z, **kwargs):
+		"""
+		Compute NFW density profile.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: density (array_like) - Mass density (M_sun/kpc^3)
+		"""
 		mvir, rs, q = self.log_corr_params()
 
 		r = (x**2 + y**2 + (z/q)**2)**0.5
@@ -581,8 +700,23 @@ class NFW(Model):
 # Hernquist #TODO: should be hardcoded, rather than defaulting to a galpy potential
 #--------------------------
 class Hernquist(Model):
+	"""
+	Hernquist spherical mass profile.
+	
+	Implements the Hernquist (1990) density profile commonly used for
+	bulges and elliptical galaxies.
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize Hernquist model.
+		
+		:m_tot (float): Total mass (M_sun)
+		:r_s (float): Scale radius (kpc)
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Hernquist'
 		self.param_names = ['m_tot', 'r_s']
@@ -616,8 +750,26 @@ class Hernquist(Model):
 # Plummer
 #--------------------------
 class Plummer(Model):
+	"""
+	Plummer sphere mass distribution.
+	
+	Implements the Plummer (1911) model commonly used for globular clusters
+	and other spherical stellar systems. Allows for optional center offset.
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize Plummer sphere model.
+		
+		:m_tot (float): Total mass (M_sun)
+		:r_s (float): Scale radius (kpc)
+		:x (float, optional): X center offset (kpc). Default is 0.
+		:y (float, optional): Y center offset (kpc). Default is 0.
+		:z (float, optional): Z center offset (kpc). Default is 0.
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Plummer'
 		self.param_names = ['m_tot', 'r_s', 'x', 'y', 'z'] 
@@ -625,6 +777,16 @@ class Plummer(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute Plummer sphere acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 
 		mtot, rs, xc, yc, zc = self.log_corr_params()
 
@@ -642,6 +804,16 @@ class Plummer(Model):
 		return ax, ay, az
 
 	def density(self, x, y, z, **kwargs):
+		"""
+		Compute Plummer density profile.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: density (array_like) - Mass density (M_sun/kpc^3)
+		"""
 
 		mtot, rs, xc, yc, zc = self.log_corr_params()
 
@@ -689,9 +861,25 @@ class MiyamotoNagaiDisk(Model):
 # Offset Miyamoto-Nagai Disk
 #--------------------------
 class OffsetMiyamotoNagaiDisk(Model):
-	#identical to the above MND potential except the z0 parameter describes a vertical shift in the midplane height
+	"""
+	Miyamoto-Nagai disk with vertical offset.
+	
+	Identical to the standard Miyamoto-Nagai potential except the z0 parameter
+	describes a vertical shift in the midplane height.
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize offset Miyamoto-Nagai disk model.
+		
+		:m_tot (float): Total mass (M_sun)
+		:a (float): Scale length (kpc)
+		:b (float): Scale height (kpc)
+		:z0 (float, optional): Vertical offset of midplane (kpc). Default is 0.
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Offset Miyamoto-Nagai Disk'
 		self.param_names = ['m_tot', 'a', 'b', 'z0']
@@ -699,6 +887,16 @@ class OffsetMiyamotoNagaiDisk(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute offset Miyamoto-Nagai disk acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		mtot, a, b, z0 = self.log_corr_params()
 
 		R = (x**2 + y**2)**0.5
@@ -717,8 +915,25 @@ class OffsetMiyamotoNagaiDisk(Model):
 # Point Mass
 #--------------------------
 class PointMass(Model):
+	"""
+	Point mass gravitational source.
+	
+	Simple Keplerian potential for a point mass at specified location.
+	Useful for modeling compact objects or simplified stellar systems.
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize point mass model.
+		
+		:m (float): Mass (M_sun)
+		:x (float, optional): X position (kpc). Default is 0.
+		:y (float, optional): Y position (kpc). Default is 0.
+		:z (float, optional): Z position (kpc). Default is 0.
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Point Mass'
 		self.param_names = ['m', 'x', 'y', 'z']
@@ -726,6 +941,16 @@ class PointMass(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute point mass acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		m, x0, y0, z0 = self.log_corr_params()
 
 		xi = x0 - x
@@ -743,9 +968,28 @@ class PointMass(Model):
 # Alpha Beta (flexible implementation)
 #--------------------------
 class OortExpansion(Model):
+	"""
+	Oort expansion (alpha) model with flexible vertical and radial components.
+	
+	Implements a general Taylor series expansion model with vertical acceleration terms
+	and flexible radial rotation curve. The vert_only flag allows using
+	only the vertical potential component.
+	"""
 
 	#vert_only flg allows you to just use the vertical potential
 	def __init__(self, vert_only=False, **kwargs):
+		"""
+		Initialize Oort expansion model.
+		
+		:alpha1 (float): Linear vertical acceleration coefficient (1/s^2)
+		:alpha2 (float, optional): Quadratic vertical acceleration coefficient (1/s^2/kpc). Default is 0.
+		:beta (float, optional): Rotation curve power law index. Default is 0.
+		:vcirc (float, optional): Circular velocity (km/s). Default uses vlsr.
+		:vert_only (bool, optional): Use only vertical potential if True. Default is False.
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Oort Expansion'
 		self.param_names = ['alpha1', 'alpha2', 'beta', 'vcirc']
@@ -754,9 +998,26 @@ class OortExpansion(Model):
 		self._finish_init_model(**kwargs)
 
 	def set_vert_only(self, b):
+		"""
+		Toggle vertical-only mode.
+		
+		:b (bool): Enable vertical-only acceleration if True
+		
+		:returns: None
+		"""
 		self._vert_only = b
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute Oort expansion acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		alpha1, alpha2, beta, vcirc = self.log_corr_params()
 
 		#TODO: remove this later if there aren't problems
@@ -784,8 +1045,24 @@ class OortExpansion(Model):
 # Cross
 #--------------------------
 class Cross(Model):
+	"""
+	Cross model for Galactic dynamics.
+	
+	Implements a cross-term acceleration model with radial and vertical
+	coupling terms commonly used in Galactic potential studies, 
+	see e.g. Chakrabarti et al. (2021), Donlon et al. (2024).
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize Cross model.
+		
+		:alpha (float): Vertical acceleration coefficient (1/s^2)
+		:gamma (float): Cross-term coupling coefficient
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Cross'
 		self.param_names = ['alpha', 'gamma']
@@ -793,6 +1070,16 @@ class Cross(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute Cross model acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		alpha, gamma = self.log_corr_params()
 
 		R = np.sqrt(x*x + y*y)
@@ -813,11 +1100,27 @@ class Cross(Model):
 # Anharmonic Disk
 #--------------------------
 class AnharmonicDisk(Model): #TODO: can in theory take as many terms of the power expansion as you want
+	"""
+	Anharmonic disk model with polynomial vertical expansion.
+	
+	Implements a disk model with anharmonic (non-quadratic) vertical terms.
+	Useful for modeling more complex vertical structures in galactic disks."""
 
 	#alpha1 = 1/s^2
 	#alpha2 = 1/s^2/kpc
 	#alpha3 = 1/s^2/kpc^2
 	def __init__(self, neg_alpha2=False, **kwargs):
+		"""
+		Initialize anharmonic disk model.
+		
+		:alpha1 (float): Linear vertical coefficient (1/s^2)
+		:alpha2 (float, optional): Quadratic vertical coefficient (1/s^2/kpc). Default is 0.
+		:alpha3 (float, optional): Cubic vertical coefficient (1/s^2/kpc^2). Default is 0.
+		:neg_alpha2 (bool, optional): Use negative alpha2 if True. Default is False.
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Anharmonic Disk'
 		self.neg_alpha2 = neg_alpha2
@@ -826,6 +1129,16 @@ class AnharmonicDisk(Model): #TODO: can in theory take as many terms of the powe
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute anharmonic disk acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		alpha1, alpha2, alpha3 = self.log_corr_params()
 
 		#TODO: remove this later if no problems
@@ -852,12 +1165,29 @@ class AnharmonicDisk(Model): #TODO: can in theory take as many terms of the powe
 # Sinusoidal Disk
 #--------------------------
 class SinusoidalDisk(Model):
+	"""
+	Sinusoidal disk model with oscillatory vertical structure.
+	
+	Implements a disk with sinusoidal perturbations, useful for modeling
+	wave-like structures in galactic disks.
+	"""
 
 	#alpha = 1/s^2
 	#amp = kpc
 	#lambda = kpc
 	#phi = radians
 	def __init__(self, **kwargs):
+		"""
+		Initialize sinusoidal disk model.
+		
+		:alpha (float): Amplitude coefficient (1/s^2)
+		:amp (float): Oscillation amplitude (kpc)
+		:lam (float): Wavelength of oscillation (kpc)
+		:phi (float): Phase offset (radians)
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Anharmonic Disk'
 		self.param_names = ['alpha', 'amp', 'lam', 'phi']
@@ -865,6 +1195,16 @@ class SinusoidalDisk(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute sinusoidal disk acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		alpha, amp, lam, phi = self.log_corr_params()
 
 		k = 2*np.pi/lam
@@ -883,11 +1223,28 @@ class SinusoidalDisk(Model):
 # Isothermal Disk
 #--------------------------
 class IsothermalDisk(Model):
+	"""
+	Isothermal disk model with constant velocity dispersion.
+	
+	Implements a disk model with isothermal vertical structure, commonly
+	used for modeling galactic thin disks with exponential mass profiles.
+	"""
 
 	#sigma = km/s (velocity dispersion)
 	#z0 = kpc, local grav. midplane
 	#b = kpc, scale height
 	def __init__(self, **kwargs):
+		"""
+		Initialize isothermal disk model.
+		
+		:sigma (float): Velocity dispersion (km/s)
+		:z0 (float, optional): Local gravitational midplane offset (kpc). Default is 0.
+		:b (float): Scale height (kpc)
+		:vlsr (float, optional): Local standard of rest velocity (km/s). Default uses global vlsr.
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Isothermal Disk'
 		self.param_names = ['sigma', 'z0', 'b', 'vlsr']
@@ -895,6 +1252,16 @@ class IsothermalDisk(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute isothermal disk acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		sigma, z0, b, v0 = self.log_corr_params()
 
 		R = (x**2 + y**2)**0.5
@@ -911,10 +1278,26 @@ class IsothermalDisk(Model):
 # Exponential Disk (NOT a Double Exponential Disk!)
 #--------------------------
 class ExponentialDisk(Model):
+	"""
+	Exponential disk model (NOT a double exponential disk!).
+	
+	Implements a simple exponentially stratified disk in the vertical direction
+	with constant surface density. Different from double exponential disk models.
+	"""
 
 	#rho0 = Msun/kpc^3 (density in the midplane)
 	#hz = kpc, scale height
 	def __init__(self, **kwargs):
+		"""
+		Initialize exponential disk model.
+		
+		:rho0 (float): Midplane density (M_sun/kpc^3)
+		:hz (float): Vertical scale height (kpc)
+		:vlsr (float, optional): Local standard of rest velocity (km/s). Default uses global vlsr.
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Exponential Disk'
 		self.param_names = ['rho0', 'hz', 'vlsr']
@@ -922,6 +1305,16 @@ class ExponentialDisk(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute exponential disk acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		rho0, hz, v0 = self.log_corr_params()
 
 		R = (x**2 + y**2)**0.5
@@ -938,12 +1331,31 @@ class ExponentialDisk(Model):
 # Isothermal Disk with Beta 
 #--------------------------
 class IsothermalDiskBeta(Model):
+	"""
+	Isothermal disk with beta parameter for rotation curve slope.
+	
+	Extension of the isothermal disk model that includes a beta parameter
+	to control the slope of the rotation curve, allowing for power-law
+	rotation curve profiles.
+	"""
 
 	#sigma = km/s (velocity dispersion)
 	#z0 = kpc, local grav. midplane
 	#b = kpc, scale height
 	#beta = unitless, related to slope of rotation curve
 	def __init__(self, **kwargs):
+		"""
+		Initialize isothermal disk with beta parameter.
+		
+		:sigma (float): Velocity dispersion (km/s)
+		:z0 (float, optional): Local gravitational midplane offset (kpc). Default is 0.
+		:b (float): Scale height (kpc)
+		:beta (float, optional): Rotation curve slope parameter. Default is 0.
+		:vlsr (float, optional): Local standard of rest velocity (km/s). Default uses global vlsr.
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Isothermal Disk'
 		self.param_names = ['sigma', 'z0', 'b', 'beta', 'vlsr']
@@ -951,6 +1363,16 @@ class IsothermalDiskBeta(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute isothermal disk with beta acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		sigma, z0, b, beta, v0 = self.log_corr_params()
 
 		R = (x**2 + y**2)**0.5
@@ -971,11 +1393,29 @@ class IsothermalDiskBeta(Model):
 # Local Expansion
 #--------------------------
 class LocalExpansion(Model):
+	"""
+	Local expansion model with acceleration gradients.
+	
+	Models local acceleration gradients in r, phi, and z directions.
+	Useful for fitting systematic trends in pulsar acceleration data.
+	"""
 
 	#dadr = 1/s^2
 	#dadphi = 1/s^2
 	#dadz = 1/s^2
 	def __init__(self, neg_dadr=False, neg_dadphi=False, **kwargs):
+		"""
+		Initialize local expansion model.
+		
+		:neg_dadr (bool, optional): Whether to negate the radial gradient. Default is False.
+		:neg_dadphi (bool, optional): Whether to negate the azimuthal gradient. Default is False.
+		:dadr (float): Radial acceleration gradient (1/s^2)
+		:dadphi (float): Azimuthal acceleration gradient (1/s^2)
+		:dadz (float): Vertical acceleration gradient (1/s^2)
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Local Expansion'
 		self.param_names = ['dadr', 'dadphi', 'dadz']
@@ -985,6 +1425,16 @@ class LocalExpansion(Model):
 		self.neg_dadphi = neg_dadphi
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute local expansion acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		dadr, dadphi, dadz = self.log_corr_params()
 
 		#allows for negative values when using log 
@@ -1011,8 +1461,22 @@ class LocalExpansion(Model):
 # see Damour & Taylor (1991), Nice & Taylor (1995), Holmberg & Flynn (2004), Lazaridis et al. (2009)
 #---------------------------------------------------------------------------
 class DamourTaylorPotential(Model):
+	"""
+	Damour-Taylor numerical potential model.
+	
+	Implements the Damour & Taylor (1991) galactic potential model
+	with numerically integrated acceleration components.
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize Damour-Taylor potential model.
+		
+		:vlsr (float, optional): Local standard of rest velocity (km/s). Default uses global vlsr.
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Damour-Taylor Potential'
 		self.param_names = []
@@ -1020,10 +1484,25 @@ class DamourTaylorPotential(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute acceleration using Galpy potential.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
+
+		if 'vlsr' in kwargs:
+			vcirc = kwargs['vlsr']
+		else:
+			vcirc = vlsr
 
 		R = (x**2 + y**2)**0.5 #galactocentric
 
-		ar = -(vlsr*kmtokpc)**2/R
+		ar = -(vcirc*kmtokpc)**2/R
 		az = -np.sign(z)*(2.27*np.abs(z) + 3.68*(1 - np.exp(-4.31*np.abs(z))))*3.241e-31 #to kpc/s^2 in the weird expansion units, by default this gives 1e-9 cm/s^2
 
 		ax = ar*x/R
@@ -1036,8 +1515,22 @@ class DamourTaylorPotential(Model):
 # see Phinney (1993)
 #---------------------------------------------------------------------------
 class SphericalFlatRC(Model):
+	"""
+	Spherical potential with flat rotation curve.
+	
+	Implements a spherically symmetric potential model that produces
+	a flat rotation curve. Based on the enclosed mass profile.
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize spherical flat rotation curve model.
+		
+		:vcirc (float): Circular velocity parameter (km/s)
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Spherical Potential with Flat Rotation Curve'
 		self.param_names = ['vcirc']
@@ -1045,6 +1538,16 @@ class SphericalFlatRC(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute spherical flat rotation curve acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)  
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 
 		if vcirc == 0.:
 			vcirc = vlsr
@@ -1066,8 +1569,22 @@ class SphericalFlatRC(Model):
 # useful for things like globular clusters where the MW acceleration field is ~ constant
 #---------------------------------------------------------------------------
 class UniformAlos(Model):
+	"""
+	Uniform line-of-sight acceleration model.
+	
+	Provides a constant line-of-sight acceleration component.
+	Does not implement 3D acceleration method - only alos() method.
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize uniform line-of-sight acceleration model.
+		
+		:alos (float): Uniform line-of-sight acceleration (kpc/s^2)
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Uniform Line-of-Sight Acceleration'
 		self.param_names = ['alos']
@@ -1075,9 +1592,29 @@ class UniformAlos(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs): #should catch everything?
+		"""
+		Raises NotImplementedError - use alos() method instead.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:raises: NotImplementedError
+		"""
 		raise NotImplementedError('UniformAlos model has no acc() method, it is meant to be used with alos().')
 
 	def alos(self, l, b, d, **kwargs): #should catch everything?
+		"""
+		Compute uniform line-of-sight acceleration.
+		
+		:l (array_like): Galactic longitude (radians)
+		:b (array_like): Galactic latitude (radians)
+		:d (array_like): Distance (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: alos (array_like) - Line-of-sight acceleration (kpc/s^2)
+		"""
 		return np.zeros(len(l)) + self.alos
 
 #---------------------------------------------------------------------------
@@ -1085,8 +1622,25 @@ class UniformAlos(Model):
 # useful for things like globular clusters where the MW acceleration field is ~ constant
 #---------------------------------------------------------------------------
 class Uniform3DAccel(Model):
+	"""
+	Uniform 3D acceleration model.
+	
+	Provides constant acceleration in all three Cartesian directions.
+	Useful if, for example, modeling acceleration fields in globular clusters where
+	the Milky Way acceleration field is approximately constant.
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize uniform 3D acceleration model.
+		
+		:ax (float): X-component acceleration (kpc/s^2)
+		:ay (float): Y-component acceleration (kpc/s^2)
+		:az (float): Z-component acceleration (kpc/s^2)
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Uniform Acceleration'
 		self.param_names = ['ax', 'ay', 'az']
@@ -1094,6 +1648,16 @@ class Uniform3DAccel(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs): #should catch everything?
+		"""
+		Compute uniform 3D acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		ax, ay, az = self.log_corr_params()
 		return np.zeros(len(x)) + ax, np.zeros(len(x)) + ay, np.zeros(len(x)) + az
 
@@ -1105,8 +1669,28 @@ class Uniform3DAccel(Model):
 #    if speed is enough of a problem that the linear combination inside the model becomes important we're also better off analytically computing the derivative
 #-----------------------------------------
 class CoxGomezSpiralArm(Model):
+	"""
+	Cox & Gomez (2002) spiral arm potential model.
+	
+	Implements the spiral arm potential from Cox & Gomez (2002).
+	Calculates accelerations numerically rather than analytically
+	for simplicity. Currently uses single term (n=1) in the sum.
+	"""
 
 	def __init__(self, **kwargs):
+		"""
+		Initialize Cox-Gomez spiral arm model.
+		
+		:N (float): Number of spiral arms
+		:alpha (float): Pitch angle (degrees)
+		:rs (float): Scale length (kpc)
+		:rh (float): Scale height (kpc) 
+		:phi0 (float): Fiducial rotation phase (radians)
+		:rho0 (float): Fiducial density (M_sun/kpc^3)
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Cox-Gomez Spiral Arm'
 		self.param_names = ['N', 'alpha', 'rs', 'rh', 'phi0', 'rho0']
@@ -1177,9 +1761,24 @@ class CoxGomezSpiralArm(Model):
 # TODO: cannot update params right now
 #-------------------------------------------------
 class GalaPotential(Model):
+	"""
+	Wrapper for Gala potential objects.
+	
+	Allows use of any instantiated Gala potential object within the peebee
+	modeling framework. Requires the Gala package to be installed.
+	"""
 
 	#pot: a (instantiated) gala potential object
 	def __init__(self, pot, **kwargs):
+		"""
+		Initialize Gala potential wrapper.
+		
+		:pot: Instantiated Gala potential object
+		:**kwargs: Parameter values to set (limited for external potentials)
+		
+		:returns: None
+		:raises: ImportError if Gala is not installed
+		"""
 
 		if isinstance(gala_error, ImportError):
 			raise ImportError("gala is required to use the GalaPotential model. Please install gala to use this model.")
@@ -1192,7 +1791,16 @@ class GalaPotential(Model):
 		self.pot = pot
 
 	def accel(self, x, y, z, **kwargs): 
-
+		"""
+		Compute acceleration using Gala potential.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		a = self.pot.acceleration(np.array([x,y,z])*u.kpc).to(u.kpc/u.s**2).value
 		
 		#have to do this to homogenize output to the correct type/shape
@@ -1211,9 +1819,25 @@ class GalaPotential(Model):
 # TODO: cannot update params right now
 #-------------------------------------------------
 class GalpyPotential(Model):
+	"""
+	Generic Galpy potential wrapper.
+	
+	Allows use of any instantiated Galpy potential object for computing
+	accelerations. Requires the Galpy package to be installed.
+	Note: Parameter updates not currently supported.
+	"""
 
 	#pot: a (instantiated) gala potential object
 	def __init__(self, pot, **kwargs):
+		"""
+		Initialize Galpy potential wrapper.
+		
+		:pot: Instantiated Galpy potential object
+		:**kwargs: Parameter values to set (limited for external potentials)
+		
+		:returns: None
+		:raises: ImportError if Galpy is not installed
+		"""
 
 		if isinstance(galpy_error, ImportError):
 			raise ImportError("galpy is required to use the GalpyPotential model. Please install galpy to use this model.")
@@ -1247,11 +1871,28 @@ class GalpyPotential(Model):
 # Density Oscillation in R
 #--------------------------
 class RadialDensityOscillation(Model):
+	"""
+	Radial density oscillation model.
+	
+	Implements sinusoidal density variations as a function of galactocentric
+	radius. Useful for modeling spiral density waves or other azimuthally
+	symmetric density perturbations.
+	"""
 
 	#amp = Msun/kpc^3 (scales amplitude of output, equal to volume density of oscillation at peak R => Rmax = lam * (pi/4 - phi)/2pi )
 	#lam = kpc, wavelength of oscillation
 	#phi = radians, offset of peak/trough (peaks will be located at R0 + lambda/4 + 2*n*lambda where n = 0, 1, 2, ... and phi = -2*pi*R0/lambda)
 	def __init__(self, **kwargs):
+		"""
+		Initialize radial density oscillation model.
+		
+		:amp (float): Amplitude scaling factor (M_sun/kpc^3)
+		:lam (float): Wavelength of oscillation (kpc)
+		:phi (float): Phase offset (radians)
+		:**kwargs: Parameter values to set
+		
+		:returns: None
+		"""
 		super().__init__()
 		self.name = 'Radial Density Oscillation'
 		self.param_names = ['amp', 'lam', 'phi']
@@ -1259,6 +1900,16 @@ class RadialDensityOscillation(Model):
 		self._finish_init_model(**kwargs)
 
 	def accel(self, x, y, z, **kwargs):
+		"""
+		Compute radial density oscillation acceleration.
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		"""
 		amp, lam, phi = self.log_corr_params()
 
 		R = (x**2 + y**2)**0.5

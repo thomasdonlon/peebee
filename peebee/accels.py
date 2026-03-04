@@ -18,12 +18,12 @@ def pbdot_gr(pb, mp, mc, e):
 	Compute $\\dot{P}^\\mathrm{GR}_b$, the change in orbital period due to emission of gravitational waves.
 	Adapted from Weisberg & Huang (2016). 
 
-	:pb: Orbital period (days)
-	:mp: Mass of the pulsar (M$_\\odot$)
-	:mc: Mass of the companion (M$_\\odot$)
-	:e: Orbital eccentricity
+	:pb (float or array_like): Orbital period (days)
+	:mp (float or array_like): Mass of the pulsar (M$_\odot$)
+	:mc (float or array_like): Mass of the companion (M$_\odot$)
+	:e (float or array_like): Orbital eccentricity
 	
-	Returns: pbdot_gr (s/s)
+	:returns: pbdot_gr (float or array_like) - Change in orbital period due to GR (s/s)
 	"""
 
 	mc *= 1.989e30 #to kg
@@ -41,11 +41,11 @@ def pdot_shk(p, mu, d):
 	"""
 	Compute $\\dot{P}^\\mathrm{Shk}$, the change in observed period due to the Shklovskii Effect (See Shklovskii, 1970).
 	
-	:p: (Orbital or spin) period (s)
-	:mu: Total proper motion (mas/yr)
-	:d: Distance from Sun (kpc)
+	:p (float or array_like): (Orbital or spin) period (s)
+	:mu (float or array_like): Total proper motion (mas/yr)
+	:d (float or array_like): Distance from Sun (kpc)
 	
-	Returns: pdot_shk (s/s)
+	:returns: pdot_shk (float or array_like) - Change in observed period due to Shklovskii effect (s/s)
 	"""
 
 	mu *= 1.537e-16 #to rad/s
@@ -62,12 +62,12 @@ def psdot_b(ps, psdot_obs, mu, d):
 	Compute $\\dot{P}^\\mathrm{B}_s$, the change in spin period due to intrinsic magnetic spindown of the pulsar.
 	We use the empirically calibrated estimate from Donlon et al. (2025). 
 
-	:ps: Spin period (s)
-	:psdot_obs: the observed time derivative of the spin period (s/s)
-	:mu: Total proper motion (mas/yr)
-	:d: Distance from Sun (kpc)
+	:ps (float or array_like): Spin period (s)
+	:psdot_obs (float or array_like): Observed time derivative of the spin period (s/s)
+	:mu (float or array_like): Total proper motion (mas/yr)
+	:d (float or array_like): Distance from Sun (kpc)
 	
-	Returns: psdot_b (s/s)
+	:returns: psdot_b (float or array_like) - Intrinsic spin period derivative due to magnetic braking (s/s)
 	"""
 
 	psdot_shk = pdot_shk(ps, mu, d)
@@ -90,15 +90,16 @@ def alos_orb_gal(*args):
 	$$
 	where $\\dot{P_b}^\\mathrm{GR} = 0$ is assumed if mp, mc, and e are not provided. 
 
-	:d: Heliocentric distance (kpc).
-	:pb: binary orbital period of the pulsar (days)
-	:pbdot_obs: the observed time derivative of the binary orbital period (s/s)
-	:mu: the observed proper motion (mas/yr)
-	:mp: (optional) the mass of the pulsar (M$_\\odot$)
-	:mc: (optional) the mass of the companion (M$_\\odot$)
-	:e: (optional) orbital eccentricity of the binary
+	:*args (tuple): Variable arguments containing (in order):
+		- d (float or array_like): Heliocentric distance (kpc)
+		- pb (float or array_like): Binary orbital period of the pulsar (days)
+		- pbdot_obs (float or array_like): Observed time derivative of the binary orbital period (s/s)
+		- mu (float or array_like): Observed proper motion (mas/yr)
+		- mp (float or array_like, optional): Mass of the pulsar (M$_\\odot$)
+		- mc (float or array_like, optional): Mass of the companion (M$_\\odot$)
+		- e (float or array_like, optional): Orbital eccentricity of the binary
 
-	Returns: alos (mm/s/yr)
+	:returns: alos (float or array_like) - Line-of-sight acceleration (mm/s/yr)
 	"""
 
 	if len(args) == 4:
@@ -138,12 +139,12 @@ def alos_spin_gal(d, ps, psdot_obs, mu):
 	$$
 	where $\\dot{P_s}^\\mathrm{B}$ is the intrinsic spin-down rate of the pulsar (see `psdot_b` function, Donlon et al. 2025). 
 
-	:d: Heliocentric distance (kpc).
-	:ps: spin period of the pulsar (s)
-	:psdot_obs: the observed time derivative of the spin period (s/s)
-	:mu: the observed proper motion (mas/yr)
+	:d (float or array_like): Heliocentric distance (kpc)
+	:ps (float or array_like): Spin period of the pulsar (s)
+	:psdot_obs (float or array_like): Observed time derivative of the spin period (s/s)
+	:mu (float or array_like): Observed proper motion (mas/yr)
 	
-	Returns: alos (mm/s/yr)
+	:returns: alos (float or array_like) - Line-of-sight acceleration (mm/s/yr)
 	"""
 
 	psdot_shk = pdot_shk(ps, mu, d)
@@ -161,12 +162,14 @@ def dm_over_bary_alos(l, b, d, model_bary, model_dm, frame='gal'):
 	Compute ${ | a _\\mathrm{DM} | / | a _\\mathrm{bary} | }$, the ratio of the (magnitudes of the) relative contributions of the dark matter and baryonic components
 	of the Galaxy to the acceleration at a given point. Useful for estimating the ability to constrain dark matter information from measurements.
 
-	:coord1-3: Galactocentric Cartesian coordinates (kpc) or Galactic longitude, latitude (deg) and heliocentric distance (kpc). Toggle between these options with the 'frame' flag.
-	:model_bary: peebee.model for the baryonic component of the Galactic potential (i.e. disk + bulge)
-	:model_dm: peebee.model for the dark component of the Galactic potential (i.e. halo)
-	:frame: [default value = 'gal'] Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d) 
+	:l (float or array_like): Galactic longitude (deg) or X coordinate (kpc) if frame='cart'
+	:b (float or array_like): Galactic latitude (deg) or Y coordinate (kpc) if frame='cart'
+	:d (float or array_like): Heliocentric distance (kpc) or Z coordinate (kpc) if frame='cart'
+	:model_bary (Model): Peebee model for the baryonic component of the Galactic potential (i.e. disk + bulge)
+	:model_dm (Model): Peebee model for the dark component of the Galactic potential (i.e. halo)
+	:frame (str, optional): Toggle the input frame. Options are 'cart' for Galactocentric Cartesian (X,Y,Z), 'gal' for heliocentric Galactic coordinates (l,b,d), 'icrs' for equatorial coordinates (ra, dec, d), and 'ecl' for ecliptic coordinates (lam, bet, d). Default is 'gal'.
 	
-	Returns: dm_over_bary_alos (dimensionless)
+	:returns: dm_over_bary_alos (float or array_like) - Ratio of dark matter to baryonic acceleration magnitudes (dimensionless)
 	"""
 
 	alos_bary = model_bary.alos(l, b, d, frame=frame)
