@@ -260,6 +260,9 @@ class Model:
 		y = d*np.sin(l*np.pi/180)*np.cos(b*np.pi/180)
 		z = d*np.sin(b*np.pi/180)
 
+		if np.any(d < 0):
+			raise ValueError("Negative distances are not physically meaningful. Please check your input data.")
+
 		asun = np.array(self.accel(sun_pos[0], sun_pos[1], sun_pos[2], **kwargs)).T
 		accels = np.array(self.accel(sun_pos[0] + x, sun_pos[1] + y, sun_pos[2] + z, **kwargs)).T - asun  #subtract off solar accel
 
@@ -268,8 +271,11 @@ class Model:
 
 		if d_err is not None:
 
+			d_low = d - d_err
+			d_low = np.where(d_low <= 0, 1e-5, d_low) #handle any negative distances in the lower bound by setting them to a small positive value
+
 			alos_plus_derr = self.alos(l, b, d+d_err, sun_pos=sun_pos, **kwargs)
-			alos_minus_derr = self.alos(l, b, d-d_err, sun_pos=sun_pos, **kwargs)
+			alos_minus_derr = self.alos(l, b, d_low, sun_pos=sun_pos, **kwargs)
 
 			return los_accels, np.abs(alos_plus_derr - alos_minus_derr)/2
 
@@ -387,6 +393,15 @@ class Model:
 			if self._logparams[i]:
 				out[i] = 10**out[i]
 		return out 
+	
+	def log_corr_params_dict(self):
+		"""
+		Get parameters in linear space for physics calculations.
+		
+		:returns: params_linear (dict) - Parameter values converted from log10 space to linear space where applicable
+		"""
+		out = {key: 10**value if self._logparams[i] else value for i, (key, value) in enumerate(self.params.items())}
+		return out 
 
 	#helper function to make it easier to get/assign default params
 	def get_param_default(self, param_name):
@@ -489,7 +504,8 @@ class CompositeModel:
 			if '.' in qualified_name:
 				model_name, param_name = qualified_name.split('.', 1)
 				if model_name in self.models:
-					self.models[model_name].params[param_name] = value
+					self.models[model_name].update_params({param_name: value})
+					#self.models[model_name].params[param_name] = value
 				else:
 					raise ValueError(f"Model '{model_name}' not found in composite. Available models: {list(self.models.keys())}")
 			else:
@@ -504,7 +520,8 @@ class CompositeModel:
 				matches.append(model_name)
 		
 		if len(matches) == 1:
-			self.models[matches[0]].params[param_name] = value
+			self.models[matches[0]].update_params({param_name: value})
+			#self.models[matches[0]].params[param_name] = value
 		elif len(matches) > 1:
 			raise ValueError(f"Ambiguous parameter name '{param_name}' found in models: {matches}. Use qualified names like 'model_name.{param_name}'")
 		else:
@@ -1767,6 +1784,16 @@ class GalaPotential(Model):
 	Allows use of any instantiated Gala potential object within the peebee
 	modeling framework. Requires the Gala package to be installed.
 	"""
+	def __new__(cls, pot, **kwargs):
+		if isinstance(gala_error, ImportError):
+			raise ImportError("gala is required to use the GalaPotential model. Please install gala to use this model.")
+
+		#if passed in a composite gala potential, turn this into a peebee composite potential of individual GalaPotentials
+		if isinstance(pot.parameters, gala.util.ImmutableDict): #easiest way to check the various types of Gala composite potential classes
+			model = CompositeModel({name: GalaPotential(pot[name], **kwargs) for name in list(pot)})
+			return model
+		else:
+			return super(GalaPotential, cls).__new__(cls)
 
 	#pot: a (instantiated) gala potential object
 	def __init__(self, pot, **kwargs):
@@ -1779,16 +1806,85 @@ class GalaPotential(Model):
 		:returns: None
 		:raises: ImportError if Gala is not installed
 		"""
+		#after __new__, now guaranteed that we're not dealing with a composite potential
 
-		if isinstance(gala_error, ImportError):
-			raise ImportError("gala is required to use the GalaPotential model. Please install gala to use this model.")
-
+		#have to manually skip many things that would normally be in _finish_init_model to call everything in the right order
+		# since the way we update Gala potentials is a little different than the way you normally do for peebee models
 		super().__init__()
-		self.name = 'Gala Potential Instance'
-		self.param_names = []
+		self.name = str(type(pot)).split('.')[-1].rstrip('\'>')
+		self.param_names = list(pot.parameters)
 		self.param_defaults = []
-		self._finish_init_model(**kwargs)
+		self.params = {key: pot.parameters[key].value for key in self.param_names}
+		self._logparams = [0]*self.nparams
 		self.pot = pot
+
+	def set_params(self, params, ignore_name_check=False):
+		"""
+		Set all model parameters from a dictionary.
+		
+		:params (dict): Dictionary of parameter names and values
+		:ignore_name_check (bool, optional): Skip parameter name validation. Default is False.
+		
+		:returns: None
+		"""
+
+		#set the params internally to the peebee model in the normal way,
+		#then pass them along to the Gala potential using the replicate method
+		#this copies the Gala potential, so it's probably not super fast, but since Gala potentials are immutable (you're killing me, Adrian)
+		#this is the most straightforward way to do this
+		
+		#regular peebee things
+		#assert that parameters have the correct length and that the names match
+		assert self.nparams == len(params), f'{self.name} Model requires {self.nparams} arguments ({self.param_names_to_str()})'
+		if not ignore_name_check:
+			if not set(self.param_names) == set(params.keys()):
+				raise Exception(f'Name Mismatch(es) in params: {self.name} Model has parameters {set(self.param_names)} but {set(params.keys())} were provided.')
+		
+		for i in range(len(self.param_names)):
+			self.params[self.param_names[i]] = params[self.param_names[i]]
+
+		#additional Gala things
+		#undo log_params before passing back into Gala
+		unlogged_params = self.log_corr_params_dict()
+
+		for key in params:
+			if key not in self.param_names:
+				raise ValueError(f"Parameter '{key}' is not a valid parameter for this Gala potential. Valid parameters are: {self.param_names}")
+
+			self.pot = self.pot.replicate(**{key: unlogged_params[key] for key in params})
+
+	def update_params(self, params):
+		"""
+		Update a subset of model parameters by name.
+		
+		:params (dict): Dictionary of parameter names and values to update
+		
+		:returns: None
+		"""
+
+		#like in set_params, set the params internally to the peebee model in the normal way,
+		#then pass them along to the Gala potential using the replicate method
+
+		#regular peebee things
+		if isinstance(params, dict):
+			for param_name, value in params.items():
+				if param_name in self.param_names:
+					self.params[param_name] = value
+				else:
+					raise ValueError(f"Parameter '{param_name}' not found in {self.name} model. Available: {self.param_names}")
+		else:
+			raise ValueError("params must be a dictionary for partial updates")
+
+		#additional Gala things
+		#undo log_params before passing back into Gala
+		unlogged_params = self.log_corr_params_dict()
+
+		#luckily Gala supports partial updates with the replicate method
+		for key in params:
+			if key not in self.param_names:
+				raise ValueError(f"Parameter '{key}' is not a valid parameter for this Gala potential. Valid parameters are: {self.param_names}")
+
+			self.pot = self.pot.replicate(**{key: unlogged_params[key] for key in params})
 
 	def accel(self, x, y, z, **kwargs): 
 		"""
@@ -1808,8 +1904,6 @@ class GalaPotential(Model):
 			return a[0][0], a[1][0], a[2][0]
 		else:
 			return a[0], a[1], a[2]
-
-		return ax, ay, az
 
 #--------------------------
 

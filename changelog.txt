@@ -1,6 +1,10 @@
 v1.3.4
  - Updated lots of docstrings
  - DamourTaylorPotential model now actually updates if you pass a vlsr kwarg
+ - Can now pass a distance error into the likelihood function for fitting potential models to data
+ - Varying a distance by the distance uncertainty is now capped at a minimum value (1e-5) to avoid negative distances when propagating uncertainties
+ - Overwrote several functions in the GalaPotential wrapper to allow for optimization of a GalaPotential model
+ - Added a new example "/examples/optimize_example_gala.py", both as a test, and also because optimizing gala potentials can be slightly different
 
 v1.3.3
  - Reworked Hernquist potential implementation so it no longer uses galpy

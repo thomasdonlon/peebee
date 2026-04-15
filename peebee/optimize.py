@@ -35,6 +35,7 @@ class FitResults:
 		self.success = False
 		self.best_fit_params = None
 		self.residuals = None
+		self.residual_uncertainties = None
 		self.noise_params = None
 		self.uncertainties = None
 		self.reduced_chi2 = None
@@ -112,7 +113,7 @@ class Fitter:
 		self.results = None
 	
 	@convert_to_frame('gal')
-	def set_data(self, l, b, d, alos, alos_err, frame='gal', sun_pos=None):
+	def set_data(self, l, b, d, alos, alos_err, dist_err=None, frame='gal', sun_pos=None):
 		"""
 		Set the pulsar acceleration data.
 		
@@ -121,6 +122,7 @@ class Fitter:
 		:d (array_like): Heliocentric distance (kpc)
 		:alos (array_like): Observed line-of-sight acceleration (kpc/s^2)
 		:alos_err (array_like): Uncertainty in line-of-sight acceleration (kpc/s^2)
+		:dist_err (array_like, optional): Distance error for likelihood calculation
 		:frame (str, optional): Coordinate frame ('gal', 'cart', 'icrs', 'ecl'). Default is 'gal'.
 		:sun_pos (tuple, optional): Solar position (kpc). Uses default if not provided.
 		
@@ -134,7 +136,8 @@ class Fitter:
 			'b': np.array(b), 
 			'd': np.array(d),
 			'alos': np.array(alos),
-			'alos_err': np.array(alos_err)
+			'alos_err': np.array(alos_err),
+			'dist_err': np.array(dist_err) if dist_err is not None else None
 		}
 	
 	def configure_params(self, param_bounds_dict):
@@ -264,12 +267,32 @@ class Fitter:
 		
 		# Calculate model predictions
 		model_alos = self.model.alos(self.data['l'], self.data['b'], self.data['d'], sun_pos=self.sun_pos)
+
+		#add uncertainty in model if distance errors are provided
+		if self.data['dist_err'] is not None:
+			# Propagate distance errors to model predictions using finite differences
+			d_plus = self.data['d'] + self.data['dist_err']
+			d_minus = self.data['d'] - self.data['dist_err']
+
+			# Handle any negative distances in the lower bound by setting them to a small positive value
+			d_minus = np.where(d_minus <= 0, 1e-5, d_minus)
+			
+			model_plus = self.model.alos(self.data['l'], self.data['b'], d_plus, sun_pos=self.sun_pos)
+			model_minus = self.model.alos(self.data['l'], self.data['b'], d_minus, sun_pos=self.sun_pos)
+			
+			# Estimate model uncertainty from distance errors
+			model_uncertainty = 0.5 * (np.abs(model_plus - model_alos) + np.abs(model_minus - model_alos))
+
+			# Combine model uncertainty with observational uncertainty
+			total_uncertainty_sq = self.data['alos_err']**2 + model_uncertainty**2
+		else:
+			total_uncertainty_sq = self.data['alos_err']
 		
 		if self.negative_mass:
 			model_alos *= -1
 		
 		# Calculate residual sum of squares
-		rss = 0.5 * np.sum((model_alos - self.data['alos'])**2 / (self.data['alos_err']**2)) * self.scale
+		rss = 0.5 * np.sum((model_alos - self.data['alos'])**2 / (total_uncertainty_sq)) * self.scale
 		
 		# Add noise model contribution if specified
 		if self.noise_model is not None:
@@ -330,7 +353,7 @@ class Fitter:
 		
 		:returns: results (FitResults) - Container with optimization results and fit statistics
 		"""
-		print(self.param_bounds)
+		#print(self.param_bounds)
 
 		if self.model is None:
 			raise ValueError("Must set model before optimizing")
@@ -406,7 +429,27 @@ class Fitter:
 
 				#compute residuals for best fit
 				model_alos = self.model.alos(self.data['l'], self.data['b'], self.data['d'], sun_pos=self.sun_pos, frame='gal')
+
+				#get uncertainty in model predictions if distance errors are provided
+				if self.data['dist_err'] is not None:
+					# Propagate distance errors to model predictions using finite differences
+					d_plus = self.data['d'] + self.data['dist_err']
+					d_minus = self.data['d'] - self.data['dist_err']
+
+					# Handle any negative distances in the lower bound by setting them to a small positive value
+					d_minus = np.where(d_minus <= 0, 1e-5, d_minus)
+					
+					model_plus = self.model.alos(self.data['l'], self.data['b'], d_plus, sun_pos=self.sun_pos, frame='gal')
+					model_minus = self.model.alos(self.data['l'], self.data['b'], d_minus, sun_pos=self.sun_pos, frame='gal')
+
+					model_uncertainty = 0.5 * (np.abs(model_plus - model_alos) + np.abs(model_minus - model_alos))
+
+					total_uncertainty = (self.data['alos_err']**2 + model_uncertainty**2)**0.5
+				else:
+					total_uncertainty = self.data['alos_err']
+
 				results.residuals = model_alos - self.data['alos']
+				results.residual_uncertainties = total_uncertainty
 					
 			else:
 				results.message = f"Optimization failed: {scipy_result.message}"
@@ -483,7 +526,7 @@ class Fitter:
 		model_alos = self.model.alos(self.data['l'], self.data['b'], self.data['d'], sun_pos=self.sun_pos, frame='gal')
 		rss_val = 0.5 * np.sum((model_alos - self.data['alos'])**2 / (self.data['alos_err']**2))
 		
-		n_data = len(self.data['alos']) 
+		n_data = len(self.data['alos'])
 		n_params = self.model.nparams
 		
 		if n_data > n_params:
