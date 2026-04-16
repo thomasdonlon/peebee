@@ -5,6 +5,7 @@ v1.3.4
  - Varying a distance by the distance uncertainty is now capped at a minimum value (1e-5) to avoid negative distances when propagating uncertainties
  - Overwrote several functions in the GalaPotential wrapper to allow for optimization of a GalaPotential model
  - Added a new example "/examples/optimize_example_gala.py", both as a test, and also because optimizing gala potentials can be slightly different
+ - Added optimize.mcmc_ll_wrapper() function to provide correct signature for MCMC codes like emcee within existing peebee Fitter framework
 
 v1.3.3
  - Reworked Hernquist potential implementation so it no longer uses galpy

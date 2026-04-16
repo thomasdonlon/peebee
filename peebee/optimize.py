@@ -545,3 +545,14 @@ class Fitter:
 			print(f'Residuals: {model_alos - self.data["alos"]}')
 		
 		return chi2, aic
+
+def mcmc_ll_wrapper(params, fitter):
+	"""
+	Wrapper for Fitter likelihood calculation to provide the correct signature for MCMC samplers.
+	
+	:param params (array_like): Parameter vector in optimization space
+	:param fitter (Fitter): Fitter instance with model and data set
+	
+	:returns: log_likelihood (float) - Log-likelihood value for given parameters
+	"""
+	return -1 * fitter._objective_function(params)
