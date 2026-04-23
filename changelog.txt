@@ -1,3 +1,6 @@
+v1.3.5
+ - adjusted the mcmc_ll_wrapper() function to allow for data mutation within calls
+
 v1.3.4
  - Updated lots of docstrings
  - DamourTaylorPotential model now actually updates if you pass a vlsr kwarg

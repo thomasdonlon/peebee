@@ -546,13 +546,27 @@ class Fitter:
 		
 		return chi2, aic
 
-def mcmc_ll_wrapper(params, fitter):
+def mcmc_ll_wrapper(params, fitter, data=None):
 	"""
 	Wrapper for Fitter likelihood calculation to provide the correct signature for MCMC samplers.
 	
 	:param params (array_like): Parameter vector in optimization space
 	:param fitter (Fitter): Fitter instance with model and data set
+	:param data (dict, optional): Optional data dictionary to override fitter's data for likelihood calculation (has keys 'l', 'b', 'd', 'alos', 'alos_err') -- useful if you want to vary dist, proper motion, etc within the MCMC
 	
 	:returns: log_likelihood (float) - Log-likelihood value for given parameters
 	"""
+
+	#check bounds
+	param_dict = fitter._extract_param_values(params)
+	for param_name, value in param_dict.items():
+		if param_name in fitter.param_bounds:
+			lower, upper = fitter.param_bounds[param_name]
+			if value < lower or value > upper:
+				return -np.inf  # Log-likelihood is -inf outside bounds
+			
+	if data is not None:
+		# override fitter data for likelihood calculation
+		fitter.data = data
+
 	return -1 * fitter._objective_function(params)
