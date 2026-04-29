@@ -40,7 +40,7 @@ for name in original_params.keys():
 # distributed uniformly within a box with 5 kpc sides centered on the Sun
 num_pulsars = 50
 bounds = np.array([[5.5, 9.5], [-2.5, 2.5], [-2.5, 2.5]])  # bounds in kpc
-x_mock, y_mock, z_mock, alos_mock = sampling.sample_alos_sources_uniform(model, num_pulsars, bounds) #alos is in kpc/s^2 here
+x_mock, y_mock, z_mock, alos_mock = sampling.sample_alos_sources_uniform(model, num_pulsars, bounds) #alos is in mm/s/yr here
 
 # Add some noise to the alos values (10% relative uncertainty)
 alos_mock_noise = 0.05 * np.abs(alos_mock)  # 10% relative uncertainty

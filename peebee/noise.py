@@ -5,7 +5,7 @@ This submodule defines various noise models that can be used when optimizing acc
 import numpy as np
 from .glob import kpcs2tommsyr
 
-#TODO: Manually converting into mm/s/yr = km/s/Myr for numerical stability, but we should be using astropy units ideally
+#Package now uses mm/s/yr = km/s/Myr internally for better numerical stability
 
 #-----------------------------------------------------------------
 # Noise Model Base Class

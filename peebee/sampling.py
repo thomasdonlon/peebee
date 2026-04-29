@@ -26,7 +26,7 @@ def sample_alos_sources_RPL(model, n, com, rscale, gamma, low_lim=0.01, up_lim=5
 	:up_lim (float, optional): Upper bound of the distribution at up_lim*rscale. Default is 5.
 	:sun_pos (tuple, optional): Solar position in Galactocentric coordinates (kpc). Default is (8.0, 0.0, 0.0).
 	
-	:returns: sample_data (tuple) - Coordinates and accelerations: (x, y, z, alos) where coordinates are in kpc and alos in kpc/s^2
+	:returns: sample_data (tuple) - Coordinates and accelerations: (x, y, z, alos) where coordinates are in kpc and alos in mm/s/yr
 	"""
 
 	#generate uniform random variables and convert them to a power law distribution
@@ -56,7 +56,7 @@ def sample_alos_sources_uniform(model, n, bounds, sun_pos=(r_sun, 0., 0.)):
 	:bounds (tuple): Coordinate bounds as ((x_min, x_max), (y_min, y_max), (z_min, z_max)) in kpc
 	:sun_pos (tuple, optional): Solar position in Galactocentric coordinates (kpc). Default is (8.0, 0.0, 0.0).
 	
-	:returns: sample_data (tuple) - Coordinates and accelerations: (x, y, z, alos) where coordinates are in kpc and alos in kpc/s^2
+	:returns: sample_data (tuple) - Coordinates and accelerations: (x, y, z, alos) where coordinates are in kpc and alos in mm/s/yr
 	"""
 
 	#generate cartesian coordinates from uniform random variables
@@ -112,7 +112,7 @@ def sample_sky_uniform(model, n, max_distance=3.0, sun_pos=(r_sun, 0., 0.)):
 	:max_distance (float, optional): Maximum heliocentric distance in kpc. Default is 3.0.
 	:sun_pos (tuple, optional): Solar position in Galactocentric coordinates (kpc). Default is (8.0, 0.0, 0.0).
 	
-	:returns: sky_sample (tuple) - Sky coordinates and accelerations: (l, b, d, alos) where l,b are in degrees, d in kpc, and alos in kpc/s^2
+	:returns: sky_sample (tuple) - Sky coordinates and accelerations: (l, b, d, alos) where l,b are in degrees, d in kpc, and alos in mm/s/yr
 	"""
 	# Generate uniform random positions on unit sphere
 	# Use method from Muller et al. for uniform distribution

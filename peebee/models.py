@@ -15,7 +15,7 @@ import astropy.units as u
 
 from .utils import mags
 from .transforms import convert_to_frame
-from .glob import fix_arrays, r_sun
+from .glob import fix_arrays, r_sun, kpcs2tommsyr
 
 #checking imports to turn off features that use them if the user doesn't have the packages installed
 #-----------------------------------------------------
@@ -34,11 +34,11 @@ except ImportError as gala_error:
 
 #TODO: should be settable/grabbable globally
 #G = 4.301e-6 #kpc/Msun (km/s)^2
-G = 4.516e-39 #kpc^3/Msun/s^2  (all accels will be in kpc/s^2) #kpc/s^2 * kpc^2/Msun
+G = 4.516e-39 #kpc^3/Msun/s^2  (converted to mm/s/yr later via kpcs2tommsyr)
 vlsr = 232.8 #km/s 
 kmtokpc = 3.241e-17
 rho_crit = 125.6 #critical density assuming LCDM, msun/kpc^3
-c = 9.716e-12 #kpc/s
+c = 9.716e-12 #kpc/s (converted to mm/s/yr later via kpcs2tommsyr)
 
 # #===================================================================
 # # HELPER FUNCTIONS
@@ -234,7 +234,7 @@ class Model:
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments specific to the model
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		raise NotImplementedError('Uninitialized model has no acc() method. Try initializing an existing model or defining your own.')
 
@@ -252,7 +252,7 @@ class Model:
 		:sun_pos (tuple, optional): The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z) in kpc. Default is (8.0, 0.0, 0.0).
 		:**kwargs: Additional keyword arguments
 
-		:returns: los_accels (array_like) - Line-of-sight acceleration component relative to the Sun (kpc/s^2). If d_err provided, returns tuple (los_accels, los_accels_err).
+		:returns: los_accels (array_like) - Line-of-sight acceleration component relative to the Sun (mm/s/yr). If d_err provided, returns tuple (los_accels, los_accels_err).
 		"""
 
 		#heliocentric, can't use frame='cart' because that's Galactocentric
@@ -277,9 +277,13 @@ class Model:
 			alos_plus_derr = self.alos(l, b, d+d_err, sun_pos=sun_pos, **kwargs)
 			alos_minus_derr = self.alos(l, b, d_low, sun_pos=sun_pos, **kwargs)
 
+			# Convert to mm/s/yr
+			los_accels *= kpcs2tommsyr
 			return los_accels, np.abs(alos_plus_derr - alos_minus_derr)/2
 
 		else:
+			# Convert to mm/s/yr
+			los_accels *= kpcs2tommsyr
 			return los_accels
 
 	@fix_arrays
@@ -295,7 +299,7 @@ class Model:
 		:sun_pos (tuple, optional): The position of the Sun in Galactocentric Cartesian coordinates (X,Y,Z) in kpc. Default is (8.0, 0.0, 0.0).
 		:angular (bool, optional): Output is an angular acceleration if True, or a linear acceleration if False. Default is True.
 
-		:returns: tan_accels (array_like) - Magnitude of tangential acceleration component (kpc/s^2 or rad/s^2)
+		:returns: tan_accels (array_like) - Magnitude of tangential acceleration component (mm/s/yr or rad/s^2)
 		"""
 
 		#heliocentric, can't use frame='cart' because that's Galactocentric
@@ -311,9 +315,11 @@ class Model:
 
 		tan_accels = np.sum((accels - los_accels*los_vecs)**2, axis=1)**0.5 #magnitude of tangential accels
 
-		if angular: #kpc/s^2 -> radians/s^2
+		if angular: #kpc/s^2 -> radians/s^2 (note: internal units are already mm/s/yr)
 			tan_accels /= d #TODO: not sure this is correct because it doesn't include cos(b) for one component
 
+		# Convert to mm/s/yr
+		tan_accels *= kpcs2tommsyr
 		return tan_accels
 
 	@fix_arrays
@@ -330,9 +336,9 @@ class Model:
 		:angular (bool, optional): Output is an angular acceleration if True, or a linear acceleration if False. Default is True.
 
 		:returns: acceleration_components (tuple) - Three-component heliocentric acceleration:
-			- alos (array_like): Acceleration along line of sight (kpc/s^2)
-			- atan_l (array_like): Acceleration in Galactic longitude direction (kpc/s^2 or rad/s^2)
-			- atan_b (array_like): Acceleration in Galactic latitude direction (kpc/s^2 or rad/s^2)
+				- alos (array_like): Acceleration along line of sight (mm/s/yr)
+			- atan_l (array_like): Acceleration in Galactic longitude direction (mm/s/yr or rad/s^2)
+			- atan_b (array_like): Acceleration in Galactic latitude direction (mm/s/yr or rad/s^2)
 		"""
 
 		l *= np.pi/180
@@ -364,9 +370,14 @@ class Model:
 		np.place(atan_b, (b == 90.), -mags(atan_vec[(b == 90.)]))
 		np.place(atan_b, (b == -90.), mags(atan_vec[(b == -90.)]))
 
-		if angular: #kpc/s^2 -> radians/s^2
+		if angular: #kpc/s^2 -> radians/s^2 (note: internal units are already mm/s/yr)
 			atan_b /= d 
 			atan_l = atan_l / d * np.cos(b)
+
+		# Convert to mm/s/yr
+		alos *= kpcs2tommsyr
+		atan_l *= kpcs2tommsyr
+		atan_b *= kpcs2tommsyr
 
 		return alos, atan_l, atan_b
 
@@ -544,6 +555,9 @@ class CompositeModel:
 			
 			for model in self.models.values():
 				out = out + model.accel(x, y, z, **kwargs)
+
+			#convert to mm/s/yr
+			out = out * kpcs2tommsyr
 			return out[0], out[1], out[2]
 
 	@fix_arrays
@@ -661,7 +675,7 @@ class NFW(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		mvir, rs, q = self.log_corr_params()
 
@@ -686,6 +700,11 @@ class NFW(Model):
 		ax = ar_r*x
 		ay = ar_r*y
 		az = ar_r*z #also z/q?
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -761,6 +780,11 @@ class Hernquist(Model):
 		ay = ar*y/r
 		az = ar*z/r
 
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
+
 		return ax, ay, az
 
 #--------------------------
@@ -802,7 +826,7 @@ class Plummer(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 
 		mtot, rs, xc, yc, zc = self.log_corr_params()
@@ -818,6 +842,11 @@ class Plummer(Model):
 		ay = frac*yi
 		az = frac*zi
 	
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
+
 		return ax, ay, az
 
 	def density(self, x, y, z, **kwargs):
@@ -872,6 +901,11 @@ class MiyamotoNagaiDisk(Model):
 		ax = ar*x/R
 		ay = ar*y/R
 
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
+
 		return ax, ay, az
 
 #--------------------------
@@ -912,7 +946,7 @@ class OffsetMiyamotoNagaiDisk(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		mtot, a, b, z0 = self.log_corr_params()
 
@@ -925,6 +959,11 @@ class OffsetMiyamotoNagaiDisk(Model):
 
 		ax = ar*x/R
 		ay = ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -966,7 +1005,7 @@ class PointMass(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		m, x0, y0, z0 = self.log_corr_params()
 
@@ -978,6 +1017,11 @@ class PointMass(Model):
 		ax = ai*xi
 		ay = ai*yi
 		az = ai*zi
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1033,7 +1077,7 @@ class OortExpansion(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		alpha1, alpha2, beta, vcirc = self.log_corr_params()
 
@@ -1055,6 +1099,11 @@ class OortExpansion(Model):
 
 		ax = -ar*x/R
 		ay = -ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1095,7 +1144,7 @@ class Cross(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		alpha, gamma = self.log_corr_params()
 
@@ -1110,6 +1159,11 @@ class Cross(Model):
 
 		ax = -ar*x/R
 		ay = -ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1154,7 +1208,7 @@ class AnharmonicDisk(Model): #TODO: can in theory take as many terms of the powe
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		alpha1, alpha2, alpha3 = self.log_corr_params()
 
@@ -1175,6 +1229,11 @@ class AnharmonicDisk(Model): #TODO: can in theory take as many terms of the powe
 
 		ax = ar*x/R
 		ay = ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1220,7 +1279,7 @@ class SinusoidalDisk(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		alpha, amp, lam, phi = self.log_corr_params()
 
@@ -1233,6 +1292,11 @@ class SinusoidalDisk(Model):
 
 		ax = ar*x/R
 		ay = ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1277,7 +1341,7 @@ class IsothermalDisk(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		sigma, z0, b, v0 = self.log_corr_params()
 
@@ -1288,6 +1352,11 @@ class IsothermalDisk(Model):
 
 		ax = ar*x/R
 		ay = ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1330,7 +1399,7 @@ class ExponentialDisk(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		rho0, hz, v0 = self.log_corr_params()
 
@@ -1341,6 +1410,11 @@ class ExponentialDisk(Model):
 
 		ax = ar*x/R
 		ay = ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1388,7 +1462,7 @@ class IsothermalDiskBeta(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		sigma, z0, b, beta, v0 = self.log_corr_params()
 
@@ -1403,6 +1477,11 @@ class IsothermalDiskBeta(Model):
 
 		ax = ar*x/R
 		ay = ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1450,7 +1529,7 @@ class LocalExpansion(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		dadr, dadphi, dadz = self.log_corr_params()
 
@@ -1470,6 +1549,11 @@ class LocalExpansion(Model):
 
 		ax = ar*x/R + aphi*y/R
 		ay = ar*y/R + aphi*x/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1509,7 +1593,7 @@ class DamourTaylorPotential(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 
 		if 'vlsr' in kwargs:
@@ -1520,10 +1604,15 @@ class DamourTaylorPotential(Model):
 		R = (x**2 + y**2)**0.5 #galactocentric
 
 		ar = -(vcirc*kmtokpc)**2/R
-		az = -np.sign(z)*(2.27*np.abs(z) + 3.68*(1 - np.exp(-4.31*np.abs(z))))*3.241e-31 #to kpc/s^2 in the weird expansion units, by default this gives 1e-9 cm/s^2
+		az = -np.sign(z)*(2.27*np.abs(z) + 3.68*(1 - np.exp(-4.31*np.abs(z))))*3.241e-31 #expansion units, converted to mm/s/yr below
 
 		ax = ar*x/R
 		ay = ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1563,7 +1652,7 @@ class SphericalFlatRC(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 
 		if vcirc == 0.:
@@ -1578,6 +1667,11 @@ class SphericalFlatRC(Model):
 		ax = -ar*np.cos(l)*np.cos(b)
 		ay = ar*np.sin(l)*np.cos(b)
 		az = ar*np.sin(b)
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1597,7 +1691,7 @@ class UniformAlos(Model):
 		"""
 		Initialize uniform line-of-sight acceleration model.
 		
-		:alos (float): Uniform line-of-sight acceleration (kpc/s^2)
+		:alos (float): Uniform line-of-sight acceleration (mm/s/yr)
 		:**kwargs: Parameter values to set
 		
 		:returns: None
@@ -1630,7 +1724,7 @@ class UniformAlos(Model):
 		:d (array_like): Distance (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: alos (array_like) - Line-of-sight acceleration (kpc/s^2)
+		:returns: alos (array_like) - Line-of-sight acceleration (mm/s/yr)
 		"""
 		return np.zeros(len(l)) + self.alos
 
@@ -1651,9 +1745,9 @@ class Uniform3DAccel(Model):
 		"""
 		Initialize uniform 3D acceleration model.
 		
-		:ax (float): X-component acceleration (kpc/s^2)
-		:ay (float): Y-component acceleration (kpc/s^2)
-		:az (float): Z-component acceleration (kpc/s^2)
+		:ax (float): X-component acceleration (mm/s/yr)
+		:ay (float): Y-component acceleration (mm/s/yr)
+		:az (float): Z-component acceleration (mm/s/yr)
 		:**kwargs: Parameter values to set
 		
 		:returns: None
@@ -1673,7 +1767,7 @@ class Uniform3DAccel(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		ax, ay, az = self.log_corr_params()
 		return np.zeros(len(x)) + ax, np.zeros(len(x)) + ay, np.zeros(len(x)) + az
@@ -1769,6 +1863,11 @@ class CoxGomezSpiralArm(Model):
 		ax = dpot_dx - dpot_dx_sun
 		ay = dpot_dy - dpot_dy_sun
 		az = dpot_dz - dpot_dz_sun
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 
@@ -1895,9 +1994,9 @@ class GalaPotential(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
-		a = self.pot.acceleration(np.array([x,y,z])*u.kpc).to(u.kpc/u.s**2).value
+		a = self.pot.acceleration(np.array([x,y,z])*u.kpc).to(u.km/u.s/u.Myr).value
 		
 		#have to do this to homogenize output to the correct type/shape
 		if isinstance(x, float): #fails if x is an int (but it shouldn't ever be...? I think?)
@@ -1948,13 +2047,13 @@ class GalpyPotential(Model):
 		R = (x**2 + y**2)**0.5
 
 		try:
-			az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value # type: ignore #convert from galpy coords
-			ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value # type: ignore
+			az = (evaluatezforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.km/u.s/u.Myr).value # type: ignore #convert from galpy coords
+			ar = (evaluateRforces(self.pot, R*u.kpc, z*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.km/u.s/u.Myr).value # type: ignore
 		except TypeError: #this happens in some potentials that require expensive integrals to compute, such as AnyAxisymmetricRazorThinDiskPotential, which cannot handle arrays
 			#iterate through input by input, in that case
 			#WARNING: This will be extremely slow
-			az = np.array([(evaluatezforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))])  # type: ignore
-			ar = np.array([(evaluateRforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.kpc/u.s**2).value for i in range(len(x))]) # type: ignore
+			az = np.array([(evaluatezforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.km/u.s/u.Myr).value for i in range(len(x))])  # type: ignore
+			ar = np.array([(evaluateRforces(self.pot, R[i]*u.kpc, z[i]*u.kpc, ro=r_sun*u.kpc, vo=vlsr*u.km/u.s, **kwargs)*(u.km/u.s/u.Myr)).to(u.km/u.s/u.Myr).value for i in range(len(x))]) # type: ignore
 
 		ax = ar*x/R
 		ay = ar*y/R
@@ -2002,7 +2101,7 @@ class RadialDensityOscillation(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in kpc/s^2
+		:returns: acceleration (tuple) - Three-component acceleration (ax, ay, az) in mm/s/yr
 		"""
 		amp, lam, phi = self.log_corr_params()
 
@@ -2019,6 +2118,11 @@ class RadialDensityOscillation(Model):
 
 		ax = ar*x/R
 		ay = ar*y/R
+
+		# Convert to mm/s/yr
+		ax *= kpcs2tommsyr
+		ay *= kpcs2tommsyr
+		az *= kpcs2tommsyr
 
 		return ax, ay, az
 

@@ -120,8 +120,8 @@ class Fitter:
 		:l (array_like): Galactic longitude (deg)
 		:b (array_like): Galactic latitude (deg)
 		:d (array_like): Heliocentric distance (kpc)
-		:alos (array_like): Observed line-of-sight acceleration (kpc/s^2)
-		:alos_err (array_like): Uncertainty in line-of-sight acceleration (kpc/s^2)
+		:alos (array_like): Observed line-of-sight acceleration (mm/s/yr)
+		:alos_err (array_like): Uncertainty in line-of-sight acceleration (mm/s/yr)
 		:dist_err (array_like, optional): Distance error for likelihood calculation
 		:frame (str, optional): Coordinate frame ('gal', 'cart', 'icrs', 'ecl'). Default is 'gal'.
 		:sun_pos (tuple, optional): Solar position (kpc). Uses default if not provided.
