@@ -165,7 +165,7 @@ for name, bounds in zip(param_names_all, param_bounds_all):
         param_dict_all[name] = bounds
 
 fitter_all.configure_params(param_dict_all)
-fitter_all.optimize(method='least_squares', loss='huber') 
+fitter_all.optimize(method='least_squares', loss='huber') #loss='huber' works for other methods as well
 
 # Print the optimized parameters for all
 results = fitter_all.results
