@@ -81,7 +81,6 @@ project = 'peebee'
 copyright = '2024, Tom Donlon'
 author = 'Tom Donlon'
 release = '1.3.3' #TODO: read this from a file
-html_logo = '_static/peebee_logo.png'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
