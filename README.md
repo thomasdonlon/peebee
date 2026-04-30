@@ -11,7 +11,7 @@ Requires Python v.>3.6.0
 
 A python package for the intersection between pulsar timing, accelerations, and Galactic structure.
 Currently, this package mainly includes convenience functions for various things I have needed to do 
-in pulsar acceleration research. This package will also form the foundation for the pulsars.uah.edu backend. 
+in pulsar acceleration research. 
 
 CONTENTS
 ========================================
