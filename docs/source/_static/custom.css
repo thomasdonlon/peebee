@@ -33,3 +33,23 @@ p.logo {
 .sphinxsidebarwrapper p img {
     display: block !important;
 }
+
+/* Hide project name "peebee" and replace with description */
+.sphinxsidebarwrapper h1.logo {
+    display: none !important;
+}
+
+.sphinxsidebarwrapper h1.logo a {
+    display: none !important;
+}
+
+/* Add custom description after logo */
+.sphinxsidebarwrapper p.logo::after {
+    content: "A python package merging Galactic dynamics with direct acceleration measurements";
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    display: block !important;
+    margin-top: 10px !important;
+    color: #333 !important;
+    font-style: italic;
+}
