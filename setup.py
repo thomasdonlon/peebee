@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="peebee",
-    version="1.3.5",
+    version="1.3.6",
     author="Tom Donlon",
     author_email="thomas.donlon@uah.edu",
     description="A python package for the intersection of pulsar accelerations and Galactic structure",
