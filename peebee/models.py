@@ -278,12 +278,10 @@ class Model:
 			alos_minus_derr = self.alos(l, b, d_low, sun_pos=sun_pos, **kwargs)
 
 			# Convert to mm/s/yr
-			los_accels *= kpcs2tommsyr
 			return los_accels, np.abs(alos_plus_derr - alos_minus_derr)/2
 
 		else:
 			# Convert to mm/s/yr
-			los_accels *= kpcs2tommsyr
 			return los_accels
 
 	@fix_arrays
@@ -315,11 +313,9 @@ class Model:
 
 		tan_accels = np.sum((accels - los_accels*los_vecs)**2, axis=1)**0.5 #magnitude of tangential accels
 
-		if angular: #kpc/s^2 -> radians/s^2 (note: internal units are already mm/s/yr)
-			tan_accels /= d #TODO: not sure this is correct because it doesn't include cos(b) for one component
+		if angular: #mm/s/yr -> radians/s^2
+			tan_accels /= kpcs2tommsyr * d #TODO: not sure this is correct because it doesn't include cos(b) for one component
 
-		# Convert to mm/s/yr
-		tan_accels *= kpcs2tommsyr
 		return tan_accels
 
 	@fix_arrays
@@ -370,14 +366,9 @@ class Model:
 		np.place(atan_b, (b == 90.), -mags(atan_vec[(b == 90.)]))
 		np.place(atan_b, (b == -90.), mags(atan_vec[(b == -90.)]))
 
-		if angular: #kpc/s^2 -> radians/s^2 (note: internal units are already mm/s/yr)
-			atan_b /= d 
-			atan_l = atan_l / d * np.cos(b)
-
-		# Convert to mm/s/yr
-		alos *= kpcs2tommsyr
-		atan_l *= kpcs2tommsyr
-		atan_b *= kpcs2tommsyr
+		if angular: #mm/s/yr -> radians/s^2
+			atan_b /= kpcs2tommsyr * d
+			atan_l = atan_l / kpcs2tommsyr / d * np.cos(b)
 
 		return alos, atan_l, atan_b
 
@@ -556,8 +547,6 @@ class CompositeModel:
 			for model in self.models.values():
 				out = out + model.accel(x, y, z, **kwargs)
 
-			#convert to mm/s/yr
-			out = out * kpcs2tommsyr
 			return out[0], out[1], out[2]
 
 	@fix_arrays

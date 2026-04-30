@@ -5,7 +5,7 @@ management using qualified parameter names.
 """
 
 import numpy as np
-from scipy.optimize import minimize, differential_evolution
+from scipy.optimize import minimize, differential_evolution, least_squares
 import traceback
 
 from .transforms import convert_to_frame
@@ -259,6 +259,37 @@ class Fitter:
 								raise ValueError(f"Parameter '{param_name}' not found in model")
 		return np.array(current_values)
 	
+	def _get_weighted_residuals(self):
+		"""Calculate weighted residuals for least_squares optimization."""
+		model_alos = self.model.alos(self.data['l'], self.data['b'], self.data['d'], sun_pos=self.sun_pos)
+
+		if self.data['dist_err'] is not None:
+			# Propagate distance errors to model predictions using finite differences
+			d_plus = self.data['d'] + self.data['dist_err']
+			d_minus = self.data['d'] - self.data['dist_err']
+
+			# Handle any negative distances in the lower bound by setting them to a small positive value
+			d_minus = np.where(d_minus <= 0, 1e-5, d_minus)
+			
+			model_plus = self.model.alos(self.data['l'], self.data['b'], d_plus, sun_pos=self.sun_pos)
+			model_minus = self.model.alos(self.data['l'], self.data['b'], d_minus, sun_pos=self.sun_pos)
+			
+			# Estimate model uncertainty from distance errors
+			model_uncertainty = 0.5 * (np.abs(model_plus - model_alos) + np.abs(model_minus - model_alos))
+
+			# Combine model uncertainty with observational uncertainty
+			total_uncertainty_sq = self.data['alos_err']**2 + model_uncertainty**2
+		else:
+			total_uncertainty_sq = self.data['alos_err']**2
+		
+		return (model_alos - self.data['alos']) / np.sqrt(total_uncertainty_sq)
+	
+	def _update_and_get_residuals(self, param_vector):
+		"""Update model parameters and return residuals for least_squares optimization."""
+		param_dict = self._extract_param_values(param_vector)
+		self._update_model_params(param_dict)
+		return self._get_weighted_residuals()
+	
 	def _objective_function(self, param_vector):
 		"""Objective function for scipy optimizers."""
 		# Update model parameters
@@ -286,21 +317,29 @@ class Fitter:
 			# Combine model uncertainty with observational uncertainty
 			total_uncertainty_sq = self.data['alos_err']**2 + model_uncertainty**2
 		else:
-			total_uncertainty_sq = self.data['alos_err']
+			total_uncertainty_sq = self.data['alos_err']**2
 		
 		if self.negative_mass:
-			model_alos *= -1
+			model_alos *= -1			
 		
-		# Calculate residual sum of squares
-		rss = 0.5 * np.sum((model_alos - self.data['alos'])**2 / (total_uncertainty_sq)) * self.scale
-		
+		if self.loss == 'least_squares': # Calculate residual sum of squares
+			loss = 0.5 * np.sum((model_alos - self.data['alos'])**2 / (total_uncertainty_sq)) * self.scale
+		elif self.loss == 'huber': # Calculate Huber loss
+			#screen residuals by huber delta
+			scaled_residuals = np.abs(model_alos - self.data['alos']) / np.sqrt(total_uncertainty_sq)
+			huber_loss = np.where(scaled_residuals <= self.huber_delta, 0.5 * scaled_residuals**2, self.huber_delta * (scaled_residuals - 0.5 * self.huber_delta))
+
+			loss = np.sum(huber_loss) * self.scale
+		else:
+			raise ValueError(f"Unknown loss function: {self.loss}")
+
 		# Add noise model contribution if specified
 		if self.noise_model is not None:
 			residuals = np.abs(model_alos - self.data['alos'])
 			noise_likelihood = self.noise_model.likelihood(residuals)
-			rss += noise_likelihood
+			loss += noise_likelihood
 		
-		return rss
+		return loss
 	
 	def _update_model_params(self, param_dict):
 		"""
@@ -344,11 +383,12 @@ class Fitter:
 		if noise_params and self.noise_model is not None:
 			self.noise_model.set_params(noise_params)
 	
-	def optimize(self, method='differential_evolution', **kwargs):
+	def optimize(self, method='differential_evolution', loss='least_squares', **kwargs):
 		"""
 		Run optimization to fit model parameters.
 		
 		:method (str, optional): Optimization algorithm ('differential_evolution' or 'gradient_descent'). Default is 'differential_evolution'.
+		:loss (str, optional): Loss function to use ('least_squares' or 'huber'). Default is 'least_squares'.
 		:**kwargs: Additional arguments passed to scipy optimizer
 		
 		:returns: results (FitResults) - Container with optimization results and fit statistics
@@ -370,9 +410,15 @@ class Fitter:
 		current_opt_values = self._get_current_optimization_values()
 		
 		results = FitResults()
-		
+
+		#configure fitter if using huber loss
+		self.loss = loss
+		if self.loss == 'huber':
+			self.huber_delta = np.median(np.abs(self.data['alos']/self.data['alos_err'] - np.median(self.data['alos']/self.data['alos_err'])))  # Robust scale estimate
+			print('Using Huber loss with delta={:.3f}'.format(self.huber_delta))
+
 		try:
-			if method == 'gradient_descent' or method == 'gd':
+			if method in ['gradient_descent', 'gd']:
 				# Gradient descent requires initial guess
 				if 'x0' not in kwargs:
 					# Use current parameter values in optimization space as initial guess
@@ -380,12 +426,24 @@ class Fitter:
 				
 				scipy_result = minimize(self._objective_function, bounds=bounds, **kwargs)
 				
-			elif method == 'differential_evolution' or method == 'de':
+			elif method in ['differential_evolution', 'de']:
 				# Set reasonable population size if not provided
 				if 'popsize' not in kwargs:
 					kwargs['popsize'] = 10 * len(param_names)
 				
 				scipy_result = differential_evolution(self._objective_function, bounds, **kwargs)
+
+			elif method in ['least_squares', 'ls']:
+
+				if self.noise_model is not None:
+					print("Warning: Noise model parameters will be optimized but not included in the least_squares residuals. This can lead to problems. Consider turning off the noise model, or using a different optimization method.")
+
+				if 'x0' not in kwargs:
+					# Use current parameter values in optimization space as initial guess
+					kwargs['x0'] = current_opt_values
+				#transpose bounds to format required by least_squares
+				bounds = np.array(bounds).T
+				scipy_result = least_squares(self._update_and_get_residuals, loss=loss, bounds=bounds, **kwargs)
 				
 			else:
 				raise ValueError(f"Unknown optimization method: {method}")
@@ -406,7 +464,10 @@ class Fitter:
 				# Calculate fit statistics
 				n_data = len(self.data['alos'])
 				n_params = len(param_names)
-				
+
+				if method in ['least_squares', 'ls']: #have to fix the format so it matches the expected output
+					scipy_result.fun = scipy_result.cost
+
 				if n_data > n_params:
 					results.reduced_chi2 = scipy_result.fun / (n_data - n_params)
 					results.aic = 2 * n_params + scipy_result.fun

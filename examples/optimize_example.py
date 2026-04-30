@@ -26,10 +26,13 @@ bounds = np.array([[5.5, 9.5], [-2.5, 2.5], [-2.5, 2.5]])  # bounds in kpc
 x_mock, y_mock, z_mock, alos_mock = sampling.sample_alos_sources_uniform(model, num_pulsars, bounds) #alos is in mm/s/yr here
 
 # Add some noise to the alos values (10% relative uncertainty)
-alos_mock_noise = 0.1 * np.abs(alos_mock)  # 10% relative uncertainty
-alos_mock_noisy = sampling.perturb_value(alos_mock, value_unc=0.1, noise_model='gaussian', relative_err=True)
+frac_unc = 0.1 # 10% relative uncertainty
+alos_mock_noise = frac_unc * np.abs(alos_mock)  
+alos_mock_noisy = sampling.perturb_value(alos_mock, value_unc=frac_unc, noise_model='gaussian', relative_err=True)
 
 print('Done generating mock data.\n')
+
+print(alos_mock)
 
 #------------------------------
 # Test 1
@@ -131,6 +134,51 @@ print('Done optimizing all parameters.\n')
 
 #------------------------------
 # Test 3
+#------------------------------
+#Same as Test 2, except we will use scipy's least squares for the regression algorithm 
+
+print('\nOptimizing all parameters...')
+correct_params = [np.log10(5e10), 3.0, 0.3, 12.0, 30.]  # log10(m_tot), a, b, log10(m_vir), r_s
+
+# Construct the model we'll be fitting to the data (slightly off from the true model so that we have something to optimize)
+# this is our guess for the underlying potential model for the gradient descent method
+model = models.NFW(m_vir=9e11, r_s=27.0) + models.MiyamotoNagaiDisk(m_tot=4e10, a=2.7, b=0.2)
+model.toggle_log_params(['NFW.m_vir', 'Miyamoto-Nagai Disk.m_tot'])
+
+# Optimize all parameters simultaneously (disk + halo)
+fitter_all = optimize.Fitter()
+fitter_all.set_model(model)
+fitter_all.set_data(x_mock, y_mock, z_mock, alos_mock_noisy, alos_mock_noise, frame='cart')
+
+# Define all parameters to be optimized
+param_names_all = ['m_tot', 'a', 'b', 'm_vir', 'r_s']
+param_bounds_all = [(9., 12.), (0.1, 10.0), (0.01, 1.0), (10., 14.), (5., 50.)]
+
+# Build the parameter dictionary for all parameters
+param_dict_all = {}
+for name, bounds in zip(param_names_all, param_bounds_all):
+    if name in ['m_tot', 'a', 'b']:
+        param_dict_all[f"Miyamoto-Nagai Disk.{name}"] = bounds
+    elif name in ['m_vir', 'r_s']:
+        param_dict_all[f"NFW.{name}"] = bounds
+    else:
+        param_dict_all[name] = bounds
+
+fitter_all.configure_params(param_dict_all)
+fitter_all.optimize(method='least_squares', loss='huber') 
+
+# Print the optimized parameters for all
+results = fitter_all.results
+print(results)
+print("Optimized parameters (all):")
+for name, value in results.best_fit_params.items():
+    if name.split('.')[0] != 'noise':
+        print(f"{name}: {value:.3f}±{results.uncertainties[name]:.3f}, correct value: {correct_params[param_names_all.index(name.split('.')[1])]:.3f}")
+
+print('Done optimizing all parameters.\n')
+
+#------------------------------
+# Test 4
 #------------------------------
 
 #Note that in Test 2, the optimization really struggles to fit the halo parameters. 

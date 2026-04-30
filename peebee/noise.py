@@ -130,7 +130,6 @@ class GaussianNoise(NoiseModel):
 		:returns: neg_log_likelihood (float) - Negative log-likelihood: 0.5*ln(2*pi*sigma^2) + 0.5*residuals^2/sigma^2
 		"""
 		sigma = self.params['sigma']
-		residuals *= kpcs2tommsyr
 		return np.sum(0.5*np.log(2*np.pi*sigma**2) + 0.5*residuals**2/sigma**2)
 
 class LorentzNoise(NoiseModel):
@@ -165,7 +164,6 @@ class LorentzNoise(NoiseModel):
 		:returns: neg_log_likelihood (float) - Negative log-likelihood: ln(pi*gamma) + ln(1 + residuals^2/gamma^2)
 		"""
 		gamma = self.params['gamma']
-		residuals *= kpcs2tommsyr
 		return np.sum(np.log(np.pi*gamma) + np.log(1 + residuals**2/gamma**2))
 
 class PowerLawNoise(NoiseModel):
@@ -200,5 +198,4 @@ class PowerLawNoise(NoiseModel):
 		:returns: neg_log_likelihood (float) - Negative log-likelihood: zeta*ln(residuals) + ln(r_min^(1-zeta) - r_max^(1-zeta)) - ln(zeta-1)
 		"""
 		zeta = self.params['zeta']
-		residuals *= kpcs2tommsyr
 		return np.sum(zeta*np.log(residuals) + np.log(np.min(residuals)**(1 - zeta) - np.max(residuals)**(1-zeta)) - np.log(zeta - 1))

@@ -1,6 +1,7 @@
 v1.3.6
  - changed units in backend from kpc/s^2 to mm/s/yr = km/s/Myr
-
+ - added option for Huber loss function in optimizer (robust optimization)
+ - Added leqast squares optimization as option for fitter.optimize
 v1.3.5
  - adjusted the mcmc_ll_wrapper() function to allow for data mutation within calls
 
