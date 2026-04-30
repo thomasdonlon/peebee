@@ -1,0 +1,35 @@
+/* Hide any text that says "logo" */
+.sphinxsidebarwrapper p:contains("logo") {
+    display: none !important;
+}
+
+/* Alternative: hide specific logo text elements */
+.sidebar-logo p {
+    display: none !important;
+}
+
+/* Hide logo text in various possible containers */
+a[title="logo"] {
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+}
+
+/* Target logo link text specifically */
+p.logo > a {
+    font-size: 0 !important;
+    line-height: 0 !important;
+}
+
+p.logo {
+    margin-bottom: 0 !important;
+}
+
+/* Hide any text node that contains just "logo" */
+.sphinxsidebarwrapper p {
+    font-size: 0;
+}
+
+.sphinxsidebarwrapper p img {
+    display: block !important;
+}

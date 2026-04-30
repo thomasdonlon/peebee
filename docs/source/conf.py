@@ -72,15 +72,21 @@ html_theme_options = {
     'github_button': True,
     'github_user': 'thomasdonlon',
     'github_repo': 'peebee',
-    'logo': '_static/peebee_logo.png',
     'logo_name': False,
     'show_powered_by': False,
+    'extra_nav_links': {},
 }
+
+# Custom CSS to hide logo text
+html_css_files = [
+    'custom.css',
+]
 
 project = 'peebee'
 copyright = '2024, Tom Donlon'
 author = 'Tom Donlon'
 release = '1.3.3' #TODO: read this from a file
+html_logo = '_static/peebee_logo.png'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
