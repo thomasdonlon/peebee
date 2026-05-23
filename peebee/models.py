@@ -776,6 +776,26 @@ class Hernquist(Model):
 
 		return ax, ay, az
 
+	def density(self, x, y, z, **kwargs):
+		"""
+		Compute the density profile for a Hernquist potential.
+
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: density (array_like) - Mass density (M_sun/kpc^3)
+		"""
+		mtot, rs = self.log_corr_params()
+
+		r = (x**2 + y**2 + z**2)**0.5
+		rho_0 = mtot/(2*np.pi*rs**3)
+
+		dens = rho_0 / (r/rs) / (1.0+r/rs)**3
+		
+		return dens
+
 #--------------------------
 # Plummer
 #--------------------------
@@ -1992,6 +2012,26 @@ class GalaPotential(Model):
 			return a[0][0], a[1][0], a[2][0]
 		else:
 			return a[0], a[1], a[2]
+            
+	def density(self, x, y, z, **kwargs):
+		"""
+		Compute mass density using Gala potential
+		
+		:x (array_like): X coordinates (kpc)
+		:y (array_like): Y coordinates (kpc)
+		:z (array_like): Z coordinates (kpc)
+		:**kwargs: Additional keyword arguments
+		
+		:returns: density (tuple) - Density in Msun/kpc^3
+		"""
+		
+		q = np.array([x,y,z])
+		dens = self.pot.density(q*u.kpc).to(u.Msun/u.kpc**3).value
+
+		if isinstance(x, float) or isinstance(x, int):
+			return dens[0]
+		else:
+			return dens
 
 #--------------------------
 
