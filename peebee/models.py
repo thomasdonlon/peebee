@@ -2022,7 +2022,7 @@ class GalaPotential(Model):
 		:z (array_like): Z coordinates (kpc)
 		:**kwargs: Additional keyword arguments
 		
-		:returns: density (tuple) - Density in Msun/kpc^3
+		:returns: density (array_like) - Density in Msun/kpc^3
 		"""
 		
 		q = np.array([x,y,z])
